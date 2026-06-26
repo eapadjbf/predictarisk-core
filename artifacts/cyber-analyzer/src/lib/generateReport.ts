@@ -1,0 +1,391 @@
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import type { CyberAnalysis } from "@workspace/api-zod/src/generated/types";
+
+export type ReportType = "full" | "critical" | "financial" | "recurring";
+
+const RED = [180, 0, 0] as [number, number, number];
+const DARK = [18, 18, 18] as [number, number, number];
+const MID = [40, 40, 40] as [number, number, number];
+const LIGHT_GRAY = [245, 245, 245] as [number, number, number];
+const WHITE = [255, 255, 255] as [number, number, number];
+const DIM = [100, 100, 100] as [number, number, number];
+
+const SEV_COLOR: Record<string, [number, number, number]> = {
+  Low: [34, 197, 94],
+  Medium: [245, 158, 11],
+  High: [249, 115, 22],
+  Critical: [204, 0, 0],
+};
+
+const REPORT_META: Record<ReportType, { title: string; subtitle: string; accent: [number, number, number] }> = {
+  full: { title: "SECURITY RISK REPORT", subtitle: "Full Analysis — All Sections", accent: RED },
+  critical: { title: "CRITICAL EVENTS REPORT", subtitle: "Critical & High Severity Events  •  Financial Exposure  •  Mitigation Controls", accent: [204, 0, 0] },
+  financial: { title: "FINANCIAL IMPACT REPORT", subtitle: "Loss Potential Analysis  •  Exposure Estimates (EUR)", accent: [249, 115, 22] },
+  recurring: { title: "RECURRING EVENTS REPORT", subtitle: "Most Frequent Event Types  •  Occurrence Statistics", accent: [59, 130, 246] },
+};
+
+// ─── Page header ──────────────────────────────────────────────────────────────
+function addPageHeader(doc: jsPDF, analysis: CyberAnalysis, reportType: ReportType) {
+  const pw = doc.internal.pageSize.getWidth();
+  const meta = REPORT_META[reportType];
+  doc.setFillColor(...DARK);
+  doc.rect(0, 0, pw, 14, "F");
+  doc.setFillColor(...meta.accent);
+  doc.rect(0, 0, 3, 14, "F");
+  doc.setTextColor(...meta.accent);
+  doc.setFont("courier", "bold");
+  doc.setFontSize(8);
+  doc.text("CYBERGUARD.SYS", 8, 9);
+  doc.setTextColor(...DIM);
+  doc.setFont("courier", "normal");
+  doc.setFontSize(8);
+  doc.text(`${meta.title}  —  ${analysis.orgType.toUpperCase()}`, pw - 14, 9, { align: "right" });
+}
+
+// ─── Cover page ───────────────────────────────────────────────────────────────
+function addCoverPage(doc: jsPDF, analysis: CyberAnalysis, reportType: ReportType) {
+  const pw = doc.internal.pageSize.getWidth();
+  const ph = doc.internal.pageSize.getHeight();
+  const meta = REPORT_META[reportType];
+
+  doc.setFillColor(...DARK);
+  doc.rect(0, 0, pw, ph, "F");
+  doc.setFillColor(...meta.accent);
+  doc.rect(0, 0, pw, 8, "F");
+  doc.setFillColor(...meta.accent);
+  doc.rect(0, ph - 8, pw, 8, "F");
+
+  doc.setTextColor(...meta.accent);
+  doc.setFont("courier", "bold");
+  doc.setFontSize(22);
+  doc.text("CYBERGUARD.SYS", pw / 2, 50, { align: "center" });
+  doc.setTextColor(...DIM);
+  doc.setFont("courier", "normal");
+  doc.setFontSize(9);
+  doc.text("CYBERSECURITY ANALYSIS PLATFORM  v2.0", pw / 2, 59, { align: "center" });
+
+  doc.setDrawColor(...meta.accent);
+  doc.setLineWidth(0.5);
+  doc.line(20, 66, pw - 20, 66);
+
+  doc.setTextColor(...WHITE);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(26);
+  doc.text(meta.title, pw / 2, 93, { align: "center" });
+  doc.setTextColor(...DIM);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.text(meta.subtitle, pw / 2, 102, { align: "center" });
+
+  // Risk badge
+  const scoreColor = SEV_COLOR[analysis.riskLevel] ?? RED;
+  doc.setFillColor(...scoreColor);
+  doc.roundedRect(pw / 2 - 35, 114, 70, 30, 2, 2, "F");
+  doc.setTextColor(...WHITE);
+  doc.setFont("courier", "bold");
+  doc.setFontSize(24);
+  doc.text(String(analysis.riskScore), pw / 2, 128, { align: "center" });
+  doc.setFontSize(8);
+  doc.text(`RISK SCORE / 100  •  ${analysis.riskLevel.toUpperCase()}`, pw / 2, 138, { align: "center" });
+
+  // Meta block
+  const metaY = 158;
+  doc.setFillColor(...MID);
+  doc.roundedRect(20, metaY, pw - 40, 58, 2, 2, "F");
+  const colLeft = 32, colRight = pw / 2 + 10;
+  const rows = [
+    ["Organization Sector", analysis.orgType],
+    ["Total Events Analyzed", analysis.totalEvents.toLocaleString("en-US")],
+    ["Analysis Date", new Date(analysis.analyzedAt).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })],
+    ["Risk Level", analysis.riskLevel],
+    ["Report Type", meta.title],
+    ["Generated", new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }) + " UTC"],
+  ];
+  rows.forEach(([label, value], i) => {
+    const x = i % 2 === 0 ? colLeft : colRight;
+    const y = metaY + 12 + Math.floor(i / 2) * 18;
+    doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(...DIM);
+    doc.text(label.toUpperCase(), x, y);
+    doc.setFont("helvetica", "bold"); doc.setFontSize(10); doc.setTextColor(...WHITE);
+    doc.text(value, x, y + 5.5);
+  });
+
+  doc.setTextColor(...DIM);
+  doc.setFont("courier", "normal");
+  doc.setFontSize(8);
+  doc.text("Generated by CyberGuard Analyzer  •  Powered by AI", pw / 2, ph - 15, { align: "center" });
+}
+
+// ─── Section title ────────────────────────────────────────────────────────────
+function addSectionTitle(doc: jsPDF, title: string, y: number, accent: [number, number, number] = RED): number {
+  doc.setFillColor(...accent);
+  doc.rect(14, y, 4, 7, "F");
+  doc.setFont("helvetica", "bold"); doc.setFontSize(12); doc.setTextColor(20, 20, 20);
+  doc.text(title, 22, y + 6);
+  doc.setDrawColor(...LIGHT_GRAY); doc.setLineWidth(0.3);
+  doc.line(14, y + 9, doc.internal.pageSize.getWidth() - 14, y + 9);
+  return y + 16;
+}
+
+// ─── Executive Summary ────────────────────────────────────────────────────────
+function addExecutiveSummary(doc: jsPDF, analysis: CyberAnalysis, reportType: ReportType) {
+  doc.addPage();
+  const pw = doc.internal.pageSize.getWidth();
+  const meta = REPORT_META[reportType];
+  addPageHeader(doc, analysis, reportType);
+  let y = 26;
+  y = addSectionTitle(doc, "Executive Summary", y, meta.accent);
+  const lines = doc.splitTextToSize(analysis.executiveSummary, pw - 28);
+  doc.setFont("helvetica", "normal"); doc.setFontSize(10); doc.setTextColor(50, 50, 50);
+  doc.text(lines, 14, y);
+  y += lines.length * 6 + 12;
+
+  y = addSectionTitle(doc, "Risk Overview", y, meta.accent);
+  const cards = [
+    { label: "Risk Score", value: `${analysis.riskScore}/100`, color: SEV_COLOR[analysis.riskLevel] ?? RED },
+    { label: "Risk Level", value: analysis.riskLevel.toUpperCase(), color: SEV_COLOR[analysis.riskLevel] ?? RED },
+    { label: "Total Events", value: analysis.totalEvents.toLocaleString("en-US"), color: [59, 130, 246] as [number, number, number] },
+    { label: "Event Types", value: String(analysis.topEvents.length), color: [139, 92, 246] as [number, number, number] },
+  ];
+  const cardW = (pw - 28 - 9) / 4;
+  cards.forEach((card, i) => {
+    const cx = 14 + i * (cardW + 3);
+    doc.setFillColor(...LIGHT_GRAY); doc.roundedRect(cx, y, cardW, 28, 1, 1, "F");
+    doc.setFillColor(...card.color); doc.rect(cx, y, 3, 28, "F");
+    doc.setFont("helvetica", "normal"); doc.setFontSize(7.5); doc.setTextColor(...DIM);
+    doc.text(card.label.toUpperCase(), cx + 7, y + 9);
+    doc.setFont("helvetica", "bold"); doc.setFontSize(14); doc.setTextColor(...card.color);
+    doc.text(card.value, cx + 7, y + 21);
+  });
+}
+
+// ─── Critical events section ──────────────────────────────────────────────────
+function addCriticalEvents(doc: jsPDF, analysis: CyberAnalysis, reportType: ReportType) {
+  doc.addPage();
+  const meta = REPORT_META[reportType];
+  addPageHeader(doc, analysis, reportType);
+  let y = 26;
+
+  const criticalOnly = reportType === "critical";
+  const events = criticalOnly
+    ? [...analysis.exploitProbabilities]
+        .filter((e) => e.severity === "Critical" || e.severity === "High")
+        .sort((a, b) => b.probability - a.probability)
+    : [...analysis.exploitProbabilities].sort((a, b) => b.probability - a.probability).slice(0, 10);
+
+  y = addSectionTitle(doc, criticalOnly ? "Critical & High Severity Events" : "Top 10 Critical Events — Exploit Probability", y, meta.accent);
+
+  const data = events.map((p, i) => [
+    String(i + 1), p.eventType, p.severity, `${(p.probability * 100).toFixed(0)}%`, p.rationale,
+  ]);
+
+  autoTable(doc, {
+    startY: y,
+    head: [["#", "Event Type", "Severity", "Prob.", "Rationale"]],
+    body: data,
+    styles: { font: "helvetica", fontSize: 8.5, cellPadding: 3.5, overflow: "linebreak" },
+    headStyles: { fillColor: DARK, textColor: WHITE, fontStyle: "bold", fontSize: 8.5 },
+    alternateRowStyles: { fillColor: [250, 250, 250] },
+    columnStyles: {
+      0: { cellWidth: 12, halign: "center", fontStyle: "bold" },
+      1: { cellWidth: 55 }, 2: { cellWidth: 22, halign: "center" },
+      3: { cellWidth: 18, halign: "center", fontStyle: "bold" }, 4: { cellWidth: "auto" },
+    },
+    margin: { left: 14, right: 14 },
+    tableLineWidth: 0.1, tableLineColor: [220, 220, 220],
+    didParseCell: (d) => {
+      if (d.column.index === 2 && d.section === "body") {
+        const col = SEV_COLOR[d.cell.raw as string];
+        if (col) { d.cell.styles.textColor = col; d.cell.styles.fontStyle = "bold"; }
+      }
+      if (d.column.index === 3 && d.section === "body") d.cell.styles.textColor = RED;
+    },
+  });
+}
+
+// ─── Financial impact section ─────────────────────────────────────────────────
+function addFinancialImpact(doc: jsPDF, analysis: CyberAnalysis, reportType: ReportType, criticalOnly = false) {
+  doc.addPage();
+  const pw = doc.internal.pageSize.getWidth();
+  const meta = REPORT_META[reportType];
+  addPageHeader(doc, analysis, reportType);
+  let y = 26;
+
+  const costs = criticalOnly
+    ? [...analysis.lossPotentials]
+        .filter((l) => {
+          const ep = analysis.exploitProbabilities.find((e) => e.eventType === l.eventType);
+          return ep && (ep.severity === "Critical" || ep.severity === "High");
+        })
+        .sort((a, b) => b.maxLossEur - a.maxLossEur)
+    : [...analysis.lossPotentials].sort((a, b) => b.maxLossEur - a.maxLossEur).slice(0, 10);
+
+  y = addSectionTitle(doc, criticalOnly ? "Financial Exposure — Critical & High Events" : "Top 10 Financial Impact — Loss Potential (EUR)", y, meta.accent);
+
+  const data = costs.map((l, i) => {
+    const ep = analysis.exploitProbabilities.find((e) => e.eventType === l.eventType);
+    return [
+      String(i + 1), l.eventType,
+      ep ? ep.severity : "—",
+      `€${l.minLossEur.toLocaleString("en-US")}`,
+      `€${l.avgLossEur.toLocaleString("en-US")}`,
+      `€${l.maxLossEur.toLocaleString("en-US")}`,
+      l.impactAreas.join(", "),
+    ];
+  });
+
+  autoTable(doc, {
+    startY: y,
+    head: [["#", "Event Type", "Severity", "Min Loss", "Avg Loss", "Max Loss", "Impact Areas"]],
+    body: data,
+    styles: { font: "helvetica", fontSize: 8, cellPadding: 3, overflow: "linebreak" },
+    headStyles: { fillColor: DARK, textColor: WHITE, fontStyle: "bold", fontSize: 8 },
+    alternateRowStyles: { fillColor: [250, 250, 250] },
+    columnStyles: {
+      0: { cellWidth: 10, halign: "center", fontStyle: "bold" },
+      1: { cellWidth: 45 }, 2: { cellWidth: 20, halign: "center" },
+      3: { cellWidth: 22, halign: "right" }, 4: { cellWidth: 22, halign: "right", fontStyle: "bold" },
+      5: { cellWidth: 25, halign: "right", fontStyle: "bold", textColor: RED }, 6: { cellWidth: "auto", fontSize: 7.5 },
+    },
+    margin: { left: 14, right: 14 }, tableLineWidth: 0.1, tableLineColor: [220, 220, 220],
+    didParseCell: (d) => {
+      if (d.column.index === 2 && d.section === "body") {
+        const col = SEV_COLOR[d.cell.raw as string]; if (col) { d.cell.styles.textColor = col; d.cell.styles.fontStyle = "bold"; }
+      }
+    },
+  });
+
+  const totalMax = costs.reduce((s, l) => s + l.maxLossEur, 0);
+  const totalAvg = costs.reduce((s, l) => s + l.avgLossEur, 0);
+  const finalY = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
+  doc.setFillColor(...LIGHT_GRAY); doc.roundedRect(14, finalY, pw - 28, 24, 2, 2, "F");
+  doc.setFillColor(...RED); doc.rect(14, finalY, 3, 24, "F");
+  doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.setTextColor(...DIM);
+  doc.text("TOTAL EXPOSURE SUMMARY", 22, finalY + 8);
+  doc.setFont("helvetica", "normal"); doc.setFontSize(9);
+  doc.text(`Average Exposure: €${totalAvg.toLocaleString("en-US")}    Maximum Exposure: €${totalMax.toLocaleString("en-US")}`, 22, finalY + 18);
+  doc.setTextColor(...RED); doc.setFont("helvetica", "bold"); doc.setFontSize(10);
+  doc.text(`€${totalMax.toLocaleString("en-US")}`, pw - 18, finalY + 18, { align: "right" });
+}
+
+// ─── Security controls section ────────────────────────────────────────────────
+function addSecurityControls(doc: jsPDF, analysis: CyberAnalysis, reportType: ReportType, criticalOnly = false) {
+  doc.addPage();
+  const meta = REPORT_META[reportType];
+  addPageHeader(doc, analysis, reportType);
+  let y = 26;
+
+  const controls = criticalOnly
+    ? analysis.controls.filter((c) => {
+        const ep = analysis.exploitProbabilities.find((e) => e.eventType === c.eventType);
+        return ep && (ep.severity === "Critical" || ep.severity === "High");
+      })
+    : analysis.controls;
+
+  y = addSectionTitle(doc, criticalOnly ? "Mitigation Controls — Critical & High Events" : "Recommended Security Controls", y, meta.accent);
+
+  const data = controls.map((ctrl) => {
+    const prob = analysis.exploitProbabilities.find((p) => p.eventType === ctrl.eventType);
+    return [
+      ctrl.eventType,
+      prob ? `${prob.severity} (${(prob.probability * 100).toFixed(0)}%)` : "—",
+      ctrl.measures.map((m, i) => `${i + 1}. ${m}`).join("\n"),
+      ctrl.frameworks.join("\n"),
+    ];
+  });
+
+  autoTable(doc, {
+    startY: y,
+    head: [["Event Type", "Severity / Prob.", "Recommended Measures", "Frameworks"]],
+    body: data,
+    styles: { font: "helvetica", fontSize: 8, cellPadding: 3, overflow: "linebreak" },
+    headStyles: { fillColor: DARK, textColor: WHITE, fontStyle: "bold", fontSize: 8 },
+    alternateRowStyles: { fillColor: [250, 250, 250] },
+    columnStyles: {
+      0: { cellWidth: 45, fontStyle: "bold" }, 1: { cellWidth: 28, halign: "center" },
+      2: { cellWidth: "auto" }, 3: { cellWidth: 32 },
+    },
+    margin: { left: 14, right: 14 }, tableLineWidth: 0.1, tableLineColor: [220, 220, 220],
+    didParseCell: (d) => {
+      if (d.column.index === 1 && d.section === "body") {
+        const text = d.cell.raw as string;
+        for (const [sev, col] of Object.entries(SEV_COLOR)) {
+          if (text.startsWith(sev)) { d.cell.styles.textColor = col; d.cell.styles.fontStyle = "bold"; break; }
+        }
+      }
+    },
+  });
+}
+
+// ─── Recurring events section ─────────────────────────────────────────────────
+function addTopRecurring(doc: jsPDF, analysis: CyberAnalysis, reportType: ReportType) {
+  doc.addPage();
+  const meta = REPORT_META[reportType];
+  addPageHeader(doc, analysis, reportType);
+  let y = 26;
+  y = addSectionTitle(doc, "Top 10 Most Recurring Events", y, meta.accent);
+  const data = analysis.topEvents.slice(0, 10).map((e, i) => [
+    String(i + 1), e.eventType, e.count.toLocaleString("en-US"), `${e.percentage.toFixed(1)}%`,
+  ]);
+  autoTable(doc, {
+    startY: y,
+    head: [["#", "Event Type", "Occurrences", "% of Total"]],
+    body: data,
+    styles: { font: "helvetica", fontSize: 9, cellPadding: 4 },
+    headStyles: { fillColor: DARK, textColor: WHITE, fontStyle: "bold", fontSize: 9 },
+    alternateRowStyles: { fillColor: [250, 250, 250] },
+    columnStyles: {
+      0: { cellWidth: 12, halign: "center", fontStyle: "bold" }, 1: { cellWidth: "auto" },
+      2: { cellWidth: 35, halign: "right", fontStyle: "bold", textColor: meta.accent },
+      3: { cellWidth: 28, halign: "right" },
+    },
+    margin: { left: 14, right: 14 }, tableLineWidth: 0.1, tableLineColor: [220, 220, 220],
+  });
+}
+
+// ─── Page numbers ─────────────────────────────────────────────────────────────
+function addPageNumbers(doc: jsPDF) {
+  const totalPages = doc.getNumberOfPages();
+  const pw = doc.internal.pageSize.getWidth();
+  const ph = doc.internal.pageSize.getHeight();
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    doc.setFillColor(...DARK); doc.rect(0, ph - 10, pw, 10, "F");
+    doc.setFont("courier", "normal"); doc.setFontSize(7.5); doc.setTextColor(...DIM);
+    doc.text("CONFIDENTIAL  —  CYBERGUARD ANALYZER", 14, ph - 3.5);
+    doc.text(`Page ${i} of ${totalPages}`, pw - 14, ph - 3.5, { align: "right" });
+  }
+}
+
+// ─── Main export ──────────────────────────────────────────────────────────────
+export function generatePDFReport(analysis: CyberAnalysis, type: ReportType = "full"): void {
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  const suffix = type === "full" ? "" : `-${type}`;
+  const filename = `cyberguard-report${suffix}-${analysis.orgType.toLowerCase().replace(/\s+/g, "-")}-${new Date().toISOString().slice(0, 10)}.pdf`;
+
+  addCoverPage(doc, analysis, type);
+
+  if (type === "full") {
+    addExecutiveSummary(doc, analysis, type);
+    addTopRecurring(doc, analysis, type);
+    addCriticalEvents(doc, analysis, type);
+    addFinancialImpact(doc, analysis, type, false);
+    addSecurityControls(doc, analysis, type, false);
+  } else if (type === "critical") {
+    addExecutiveSummary(doc, analysis, type);
+    addCriticalEvents(doc, analysis, type);
+    addFinancialImpact(doc, analysis, type, true);
+    addSecurityControls(doc, analysis, type, true);
+  } else if (type === "financial") {
+    addExecutiveSummary(doc, analysis, type);
+    addFinancialImpact(doc, analysis, type, false);
+    addSecurityControls(doc, analysis, type, false);
+  } else if (type === "recurring") {
+    addExecutiveSummary(doc, analysis, type);
+    addTopRecurring(doc, analysis, type);
+  }
+
+  addPageNumbers(doc);
+  doc.save(filename);
+}
