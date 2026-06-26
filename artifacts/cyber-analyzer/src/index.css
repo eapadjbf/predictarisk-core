@@ -218,3 +218,4 @@
     inset: -1px;
   }
 }
+#replit-badge, [data-cy="replit-badge"], a[href*="replit.com/refer"], div[class*="badge"], .replit-ui-theme-root ~ div:last-child { display: none !important; }
