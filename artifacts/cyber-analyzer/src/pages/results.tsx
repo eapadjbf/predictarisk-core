@@ -30,6 +30,7 @@ const SEV_BG: Record<SeverityKey, string> = {
 
 const NAV_ITEMS = [
   { id: "overview", label: "Ops Overview", icon: Activity },
+  { id: "executive", label: "Executive View", icon: DollarSign },
   { id: "recurring", label: "Top 10 Recurring", icon: TrendingUp },
   { id: "critical", label: "Top 10 Critical", icon: AlertTriangle },
   { id: "cost", label: "Top 10 Cost", icon: DollarSign },
@@ -364,6 +365,56 @@ function SectionHeader({ children }: { children: React.ReactNode }) {
 
 function toISODate(d: Date): string {
   return d.toISOString().split("T")[0];
+}
+
+// Compact € formatter for board-level figures (€28M, €450k, €900).
+function fmtEur(n: number): string {
+  if (n >= 1_000_000) {
+    const m = n / 1_000_000;
+    return `€${m >= 10 ? Math.round(m) : m.toFixed(1)}M`;
+  }
+  if (n >= 1_000) return `€${Math.round(n / 1_000)}k`;
+  return `€${Math.round(n)}`;
+}
+
+// Translate a 0-100 risk score into plain-English board language.
+function securityPosture(score: number): { word: string; sev: SeverityKey } {
+  if (score <= 30) return { word: "Strong", sev: "Low" };
+  if (score <= 60) return { word: "Moderate", sev: "Medium" };
+  if (score <= 80) return { word: "At Risk", sev: "High" };
+  return { word: "Critical", sev: "Critical" };
+}
+
+// Map a compliance status to a board-friendly RAG label.
+function complianceRag(status: ComplianceStatus): {
+  label: string; action: string; sev: SeverityKey;
+} {
+  if (status === "CRITICAL" || status === "HIGH")
+    return { label: "RED", action: "ACTION REQUIRED", sev: "Critical" };
+  if (status === "MEDIUM")
+    return { label: "AMBER", action: "MONITOR", sev: "Medium" };
+  return { label: "GREEN", action: "ON TRACK", sev: "Low" };
+}
+
+// Translate common technical threat names into plain board language.
+// Each pattern optionally consumes a trailing generic noun (attack/attempt/
+// exploit/payload/incident) so values like "DDoS attack" or "RCE exploit"
+// are fully replaced rather than leaving the technical token in place.
+const THREAT_GENERIC = "(?:\\s+(?:attacks?|attempts?|exploits?|payloads?|incidents?))?";
+const THREAT_PATTERNS: Array<[RegExp, string]> = [
+  [new RegExp(`\\bddos${THREAT_GENERIC}\\b`, "gi"), "service-flooding attacks"],
+  [new RegExp(`\\bsql\\s*injection${THREAT_GENERIC}\\b`, "gi"), "database break-ins"],
+  [new RegExp(`\\bsqli${THREAT_GENERIC}\\b`, "gi"), "database break-ins"],
+  [new RegExp(`\\bxss${THREAT_GENERIC}\\b`, "gi"), "website code-injection attacks"],
+  [new RegExp(`\\bmitm${THREAT_GENERIC}\\b`, "gi"), "intercepted-communication attacks"],
+  [new RegExp(`\\bman-in-the-middle${THREAT_GENERIC}\\b`, "gi"), "intercepted-communication attacks"],
+  [new RegExp(`\\bapt${THREAT_GENERIC}\\b`, "gi"), "sustained targeted intrusions"],
+  [new RegExp(`\\brce${THREAT_GENERIC}\\b`, "gi"), "remote takeover attempts"],
+];
+function humanizeThreat(s: string): string {
+  let out = s;
+  for (const [re, repl] of THREAT_PATTERNS) out = out.replace(re, repl);
+  return out;
 }
 
 export default function Results() {
@@ -884,6 +935,254 @@ export default function Results() {
                 <SectionHeader>Executive Summary</SectionHeader>
                 <p className="text-sm leading-relaxed text-muted-foreground">{executiveSummary}</p>
               </div>
+            </div>
+          )}
+
+          {/* ─── EXECUTIVE VIEW ─── */}
+          {activeTab === "executive" && (
+            <div className="space-y-5">
+              {(() => {
+                const sector = (orgType ?? "").toLowerCase();
+                const posture = securityPosture(riskScore);
+
+                // Financial figures
+                const maxExposure = lossPotentials.reduce(
+                  (m, l) => Math.max(m, l.maxLossEur), 0
+                );
+                const hasFinancials = maxExposure > 0;
+                const remediationCost = hasFinancials
+                  ? Math.round(maxExposure * 0.008) : 0;
+                const roi = remediationCost > 0
+                  ? Math.round(maxExposure / remediationCost) : 0;
+                const roiLabel = roi > 0 ? `1:${roi}×` : "N/A";
+
+                // Primary (most financially damaging) threat
+                const sortedByLoss = [...lossPotentials].sort(
+                  (a, b) => b.maxLossEur - a.maxLossEur
+                );
+                const topThreat = humanizeThreat(
+                  sortedByLoss[0]?.eventType ?? "cyber incidents"
+                );
+
+                // Priority action plan — top 5 by financial impact, enriched
+                // with occurrence frequency (topEvents) and urgency (severity).
+                const sevByType = new Map(
+                  exploitProbabilities.map((p) => [p.eventType, p.severity])
+                );
+                const countByType = new Map(
+                  topEvents.map((e) => [e.eventType, e.count])
+                );
+                const planItems = sortedByLoss.slice(0, 5).map((l) => {
+                  const sev = (sevByType.get(l.eventType) ?? "Medium") as SeverityKey;
+                  const timeline =
+                    sev === "Critical" ? "This week"
+                      : sev === "High" ? "This month"
+                        : "This quarter";
+                  const count = countByType.get(l.eventType);
+                  const seen = count
+                    ? `Seen ${count.toLocaleString("en-US")} time(s) this period — `
+                    : "";
+                  const plain = humanizeThreat(l.eventType);
+                  return {
+                    eventType: l.eventType,
+                    title: `Strengthen defences against ${plain}`,
+                    impact: `${seen}left unaddressed this could cost up to ${fmtEur(l.maxLossEur)} and disrupt day-to-day operations.`,
+                    cost: hasFinancials ? Math.max(1, Math.round(l.maxLossEur * 0.008)) : 0,
+                    timeline,
+                    sev,
+                  };
+                });
+
+                // Compliance exposure (simplified, board-level)
+                const frameworks = complianceFrameworksForSector(sector);
+
+                // Trend trajectory
+                const rising = eventTrends.filter((t) => t.trend === "rising").length;
+                const falling = eventTrends.filter((t) => t.trend === "falling").length;
+                const trajectory =
+                  rising > falling
+                    ? { word: "Worsening", icon: ArrowUp, sev: "Critical" as SeverityKey }
+                    : falling > rising
+                      ? { word: "Improving", icon: ArrowDown, sev: "Low" as SeverityKey }
+                      : { word: "Stable", icon: ArrowRight, sev: "Medium" as SeverityKey };
+
+                // Recommended next review — sooner when risk is higher
+                const reviewDays = riskScore > 80 ? 30 : riskScore > 60 ? 60 : 90;
+                const reviewDate = new Date(analyzedAt);
+                reviewDate.setDate(reviewDate.getDate() + reviewDays);
+                const reviewLabel = reviewDate.toLocaleDateString("en-GB", {
+                  day: "numeric", month: "long", year: "numeric",
+                });
+
+                return (
+                  <>
+                    {/* ── 1. Top summary bar ── */}
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                      <StatCard label="Security Posture" value={posture.word}
+                        sub="overall standing this period"
+                        icon={ShieldAlert} accent={SEV_COLOR[posture.sev]} />
+                      <StatCard label="Maximum Financial Exposure" value={fmtEur(maxExposure)}
+                        sub="worst-case single loss"
+                        icon={DollarSign} accent={SEV_COLOR["Critical"]} />
+                      <StatCard label="Recommended Investment" value={fmtEur(remediationCost)}
+                        sub="to protect the business"
+                        icon={ShieldCheck} accent="#3b82f6" />
+                      <StatCard label="Protection ROI" value={roiLabel}
+                        sub="protected per € invested"
+                        icon={TrendingUp} accent={SEV_COLOR["Low"]} />
+                    </div>
+
+                    {/* ── 2. Board-level risk statement ── */}
+                    <div className="border border-border bg-card">
+                      <div className="px-4 py-2 flex items-center gap-2"
+                        style={{
+                          backgroundColor: SEV_BG[posture.sev],
+                          borderBottom: `1px solid ${SEV_COLOR[posture.sev]}30`,
+                        }}>
+                        <AlertTriangle className="w-4 h-4" style={{ color: SEV_COLOR[posture.sev] }} />
+                        <span className="text-[11px] font-bold tracking-widest uppercase"
+                          style={{ color: SEV_COLOR[posture.sev] }}>
+                          {posture.word === "Strong" ? "LOW RISK"
+                            : posture.word === "Moderate" ? "MODERATE RISK"
+                              : posture.word === "At Risk" ? "ELEVATED RISK"
+                                : "CRITICAL RISK"} — Board action statement
+                        </span>
+                      </div>
+                      <p className="p-4 text-sm leading-relaxed text-foreground/90">
+                        Your organisation faces a{" "}
+                        <span className="font-bold" style={{ color: SEV_COLOR[posture.sev] }}>
+                          {posture.word.toLowerCase()}
+                        </span>{" "}
+                        level of cybersecurity exposure this period. The primary risk is{" "}
+                        <span className="font-bold">{topThreat}</span>
+                        {hasFinancials ? (
+                          <>
+                            , which could result in financial losses of up to{" "}
+                            <span className="font-bold" style={{ color: SEV_COLOR["Critical"] }}>
+                              {fmtEur(maxExposure)}
+                            </span>
+                            {roi > 0 ? (
+                              <>
+                                . Board action is recommended to approve a remediation budget of{" "}
+                                <span className="font-bold" style={{ color: "#3b82f6" }}>
+                                  {fmtEur(remediationCost)}
+                                </span>
+                                , which represents a{" "}
+                                <span className="font-bold" style={{ color: SEV_COLOR["Low"] }}>
+                                  {roiLabel} return
+                                </span>{" "}
+                                on protection investment — every euro invested safeguards roughly{" "}
+                                {roi} euros of potential loss.
+                              </>
+                            ) : (
+                              <>
+                                . Board action is recommended to approve a remediation budget to
+                                materially reduce this exposure.
+                              </>
+                            )}
+                          </>
+                        ) : (
+                          <>
+                            . No material financial exposure was quantified this period, but
+                            continued board oversight is recommended to keep this risk contained.
+                          </>
+                        )}
+                      </p>
+                    </div>
+
+                    {/* ── 3 & 4. Action plan + Compliance exposure ── */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                      {/* Priority action plan */}
+                      <div className="border border-border bg-card p-4">
+                        <SectionHeader>Priority Action Plan</SectionHeader>
+                        <div className="flex flex-col gap-3">
+                          {planItems.length === 0 && (
+                            <p className="text-xs text-muted-foreground">
+                              No priority actions identified for this period.
+                            </p>
+                          )}
+                          {planItems.map((item, i) => (
+                            <div key={i} className="flex gap-3"
+                              data-testid={`row-action-${i}`}>
+                              <div className="shrink-0 w-6 h-6 flex items-center justify-center font-mono text-xs font-bold rounded-sm"
+                                style={{ color: SEV_COLOR[item.sev], backgroundColor: SEV_BG[item.sev] }}>
+                                {i + 1}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-start justify-between gap-2">
+                                  <h3 className="text-sm font-bold tracking-wide">{item.title}</h3>
+                                  <span className="shrink-0 px-2 py-0.5 text-[9px] font-bold tracking-widest uppercase"
+                                    style={{ color: SEV_COLOR[item.sev], backgroundColor: SEV_BG[item.sev], border: `1px solid ${SEV_COLOR[item.sev]}30` }}>
+                                    {item.timeline}
+                                  </span>
+                                </div>
+                                <p className="text-[11px] text-muted-foreground mt-0.5">{item.impact}</p>
+                                <p className="text-[11px] mt-1">
+                                  <span className="text-muted-foreground">Estimated cost: </span>
+                                  <span className="font-mono font-bold" style={{ color: "#3b82f6" }}>{fmtEur(item.cost)}</span>
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Compliance exposure */}
+                      <div className="border border-border bg-card p-4">
+                        <SectionHeader>Compliance Exposure</SectionHeader>
+                        <div className="flex flex-col gap-2">
+                          {frameworks.map((f, i) => {
+                            const rag = complianceRag(f.status);
+                            return (
+                              <div key={i} className="flex items-center justify-between gap-3 border border-border/60 px-3 py-2"
+                                data-testid={`row-compliance-exposure-${i}`}>
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: SEV_COLOR[rag.sev] }} />
+                                    <h3 className="text-sm font-bold tracking-wide truncate">{f.name}</h3>
+                                  </div>
+                                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                                    {f.deadlineDays != null ? `${f.deadlineDays} days` : "ongoing"} · {f.fine}
+                                  </p>
+                                </div>
+                                <span className="shrink-0 px-2 py-0.5 text-[9px] font-bold tracking-widest uppercase"
+                                  style={{ color: SEV_COLOR[rag.sev], backgroundColor: SEV_BG[rag.sev], border: `1px solid ${SEV_COLOR[rag.sev]}30` }}>
+                                  {rag.label} · {rag.action}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* ── 5. Trend indicator ── */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+                      <div className="border border-border bg-card p-4 flex flex-col gap-2">
+                        <span className="text-[10px] tracking-widest uppercase text-muted-foreground">Risk Trajectory</span>
+                        <div className="flex items-center gap-2">
+                          <trajectory.icon className="w-5 h-5" style={{ color: SEV_COLOR[trajectory.sev] }} />
+                          <span className="text-lg font-bold" style={{ color: SEV_COLOR[trajectory.sev] }}>{trajectory.word}</span>
+                        </div>
+                        <span className="text-[10px] text-muted-foreground tracking-wide">vs. recent activity</span>
+                      </div>
+                      <div className="border border-border bg-card p-4 flex flex-col gap-2">
+                        <span className="text-[10px] tracking-widest uppercase text-muted-foreground">Top Threat This Period</span>
+                        <span className="text-lg font-bold truncate" style={{ color: SEV_COLOR["Critical"] }}>{topThreat}</span>
+                        <span className="text-[10px] text-muted-foreground tracking-wide">highest financial impact</span>
+                      </div>
+                      <div className="border border-border bg-card p-4 flex flex-col gap-2">
+                        <span className="text-[10px] tracking-widest uppercase text-muted-foreground">Recommended Next Review</span>
+                        <div className="flex items-center gap-2">
+                          <Calendar className="w-5 h-5" style={{ color: "#3b82f6" }} />
+                          <span className="text-lg font-bold">{reviewLabel}</span>
+                        </div>
+                        <span className="text-[10px] text-muted-foreground tracking-wide">in {reviewDays} days</span>
+                      </div>
+                    </div>
+                  </>
+                );
+              })()}
             </div>
           )}
 

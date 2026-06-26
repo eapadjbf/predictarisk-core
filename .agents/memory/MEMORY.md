@@ -1,0 +1,1 @@
+- [Plain-language jargon scrubbing](jargon-humanization.md) — board/exec UI must regex-scrub free-form eventType jargon (DDoS/XSS/RCE…), not exact-string lookup.

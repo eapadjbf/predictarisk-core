@@ -1,0 +1,33 @@
+Add a new navigation tab called "Executive View" with id "executive" to the NAV_ITEMS array in results.tsx, using the DollarSign icon. Place it as the second item in the nav, right after "Ops Overview".
+
+This tab is designed for CEO/CFO/Board — no technical jargon, pure business language.
+
+It should contain these sections:
+
+1. TOP SUMMARY BAR (4 cards):
+- "Security Posture" — shows riskScore as a word: 0-30 "Strong", 31-60 "Moderate", 61-80 "At Risk", 81-100 "Critical" — with color accordingly
+- "Maximum Financial Exposure" — shows the highest maxLossEur from lossPotentials in € format (e.g. €28M)
+- "Recommended Investment" — shows total remediation cost (sum a realistic remediation budget: ~0.8% of max exposure) in €
+- "Protection ROI" — shows the ratio between max exposure and remediation cost (e.g. "1:329×")
+
+2. BOARD-LEVEL RISK STATEMENT (full width):
+A single paragraph in plain English (not technical) derived from executiveSummary, prefixed with a coloured risk banner. Example: "CRITICAL — Your organisation faces significant cybersecurity exposure this period. The primary risk is [top threat] which could result in financial losses up to [max €]. Immediate board action is recommended to approve a remediation budget of [€amount], which represents a [ROI]× return on protection investment."
+
+3. PRIORITY ACTION PLAN (left column):
+A numbered list of max 5 actions, each with:
+- Action title in plain English (no acronyms)
+- One-line business impact if not done
+- Estimated cost in €
+- Timeline: "This week" / "This month" / "This quarter"
+- Derived from topEvents and controls data
+
+4. COMPLIANCE EXPOSURE (right column):
+A simplified version of the compliance tab — just the frameworks with status RED/AMBER/GREEN, the next deadline in days, and the maximum fine in plain language. No articles, no technical details. Just: "NIS2 — 47 days — fine up to €10M — ACTION REQUIRED"
+
+5. TREND INDICATOR (bottom):
+3 simple indicators with arrows:
+- Risk trajectory: "Improving ↓" / "Stable →" / "Worsening ↑"  
+- Top threat this period
+- Recommended next review date
+
+Style consistently with the existing dark theme. Use the same data already available in analysisResult — do not create new API calls. Keep all business language, avoid technical terms like CVE, SIEM, IOC, EDR.

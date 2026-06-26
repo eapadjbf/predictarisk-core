@@ -30,7 +30,17 @@ _Populate as you build — non-obvious choices a reader couldn't infer from the 
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+CyberGuard Analyzer — a Portuguese-origin, fully English-language cybersecurity event
+analysis tool (artifact slug: `cyber-analyzer`). Users pick a sector, upload an Excel
+event log, and get an OpenAI-driven risk analysis on a SOC-terminal dark dashboard:
+risk scoring, top events, exploit probabilities, loss potential, security controls,
+filtering, an AI voice assistant, PDF reports, a compliance tab, and a forecast.
+
+The **Executive View** tab reframes the same `analysisResult` data (no extra API calls)
+for CEO/CFO/Board in plain business language — no technical jargon (CVE/SIEM/IOC/EDR/
+DDoS/XSS are scrubbed). It shows a security posture + financial-exposure summary, a
+board-level risk statement, a priority action plan, compliance RAG exposure, and trend
+indicators.
 
 ## User preferences
 
