@@ -1,0 +1,89 @@
+Two important improvements to results.tsx:
+
+IMPROVEMENT 1 — Clickable events that navigate to Controls tab filtered by event:
+
+In all tabs where event types appear (Top 10 Recurring, Top 10 Critical, Ops Overview), make each event name clickable. When clicked, it should:
+- Switch activeTab to "controls"
+- Set a new state variable "activeControlFilter" to that event type name
+- Scroll to the top of the controls section
+
+In the Controls tab, if activeControlFilter is set, show only the control that matches that event type, and show a small banner at the top saying "Showing controls for: [event name]" with an "× Clear filter" button that resets activeControlFilter to null and shows all controls.
+
+IMPROVEMENT 2 — Sector-specific frameworks in Controls tab:
+
+Replace the hardcoded ["ISO 27001", "NIST"] framework badges on each control with a dynamic function that returns the correct frameworks based on the current sector (from analysisResult.orgType).
+
+Create a SECTOR_FRAMEWORKS constant that maps each event type to sector-specific frameworks:
+
+For "Unpatched Software":
+- Banking: ["ISO 27001 A.12.6", "NIST PR.IP-12", "NIS2 Art.21(2)(e)", "DORA Art.9", "PCI-DSS 6.3"]
+- Healthcare: ["ISO 27001 A.12.6", "NIST PR.IP-12", "NIS2 Art.21(2)(e)", "HIPAA §164.308(a)(5)"]
+- Government: ["ISO 27001 A.12.6", "NIST PR.IP-12", "NIS2 Art.21(2)(e)", "ENS mp.sw.2"]
+- Energy: ["ISO 27001 A.12.6", "NIS2 Art.21(2)(e)", "IEC 62443-2-4", "NIST PR.IP-12"]
+- Education: ["ISO 27001 A.12.6", "NIST PR.IP-12", "NIS2 Art.21(2)(e)", "ISO 27017"]
+- Retail: ["ISO 27001 A.12.6", "NIST PR.IP-12", "PCI-DSS 6.3", "NIS2 Art.21(2)(e)"]
+- Manufacturing: ["ISO 27001 A.12.6", "NIS2 Art.21(2)(e)", "IEC 62443-2-4", "NIST PR.IP-12"]
+- Transportation: ["ISO 27001 A.12.6", "NIS2 Art.21(2)(e)", "ISO 28000", "NIST PR.IP-12"]
+- Insurance: ["ISO 27001 A.12.6", "NIST PR.IP-12", "NIS2 Art.21(2)(e)", "Solvency II Art.44", "DORA Art.9"]
+- Telecommunications: ["ISO 27001 A.12.6", "NIS2 Art.21(2)(e)", "TISAX", "NIST PR.IP-12"]
+
+For "Social Engineering":
+- Banking: ["ISO 27001 A.7.2", "NIST PR.AT-1", "NIS2 Art.21(2)(g)", "DORA Art.13", "PCI-DSS 12.6"]
+- Healthcare: ["ISO 27001 A.7.2", "NIST PR.AT-1", "NIS2 Art.21(2)(g)", "HIPAA §164.308(a)(5)(i)"]
+- Government: ["ISO 27001 A.7.2", "NIST PR.AT-1", "NIS2 Art.21(2)(g)", "ENS mp.per.3"]
+- Energy: ["ISO 27001 A.7.2", "NIS2 Art.21(2)(g)", "IEC 62443-2-1", "NIST PR.AT-1"]
+- Education: ["ISO 27001 A.7.2", "NIST PR.AT-1", "NIS2 Art.21(2)(g)", "ISO 27017"]
+- Retail: ["ISO 27001 A.7.2", "NIST PR.AT-1", "PCI-DSS 12.6", "NIS2 Art.21(2)(g)"]
+- Manufacturing: ["ISO 27001 A.7.2", "NIS2 Art.21(2)(g)", "IEC 62443-2-1", "NIST PR.AT-1"]
+- Transportation: ["ISO 27001 A.7.2", "NIS2 Art.21(2)(g)", "ISO 28000", "NIST PR.AT-1"]
+- Insurance: ["ISO 27001 A.7.2", "NIST PR.AT-1", "NIS2 Art.21(2)(g)", "Solvency II Art.44", "DORA Art.13"]
+- Telecommunications: ["ISO 27001 A.7.2", "NIS2 Art.21(2)(g)", "TISAX", "NIST PR.AT-1"]
+
+For "Weak Passwords":
+- Banking: ["ISO 27001 A.9.4", "NIST PR.AC-7", "NIS2 Art.21(2)(i)", "DORA Art.9(4)", "PCI-DSS 8.3"]
+- Healthcare: ["ISO 27001 A.9.4", "NIST PR.AC-7", "NIS2 Art.21(2)(i)", "HIPAA §164.312(d)"]
+- Government: ["ISO 27001 A.9.4", "NIST PR.AC-7", "NIS2 Art.21(2)(i)", "ENS op.acc.5"]
+- Energy: ["ISO 27001 A.9.4", "NIS2 Art.21(2)(i)", "IEC 62443-3-3 SR 1.1", "NIST PR.AC-7"]
+- Education: ["ISO 27001 A.9.4", "NIST PR.AC-7", "NIS2 Art.21(2)(i)", "ISO 27017"]
+- Retail: ["ISO 27001 A.9.4", "NIST PR.AC-7", "PCI-DSS 8.3", "NIS2 Art.21(2)(i)"]
+- Manufacturing: ["ISO 27001 A.9.4", "NIS2 Art.21(2)(i)", "IEC 62443-3-3 SR 1.1", "NIST PR.AC-7"]
+- Transportation: ["ISO 27001 A.9.4", "NIS2 Art.21(2)(i)", "ISO 28000", "NIST PR.AC-7"]
+- Insurance: ["ISO 27001 A.9.4", "NIST PR.AC-7", "NIS2 Art.21(2)(i)", "Solvency II Art.44", "DORA Art.9(4)"]
+- Telecommunications: ["ISO 27001 A.9.4", "NIS2 Art.21(2)(i)", "TISAX", "NIST PR.AC-7"]
+
+For "Zero-day":
+- Banking: ["ISO 27001 A.12.2", "NIST DE.CM-4", "NIS2 Art.21(2)(e)", "DORA Art.10", "PCI-DSS 11.3"]
+- Healthcare: ["ISO 27001 A.12.2", "NIST DE.CM-4", "NIS2 Art.21(2)(e)", "HIPAA §164.306(a)(1)"]
+- Government: ["ISO 27001 A.12.2", "NIST DE.CM-4", "NIS2 Art.21(2)(e)", "ENS op.exp.3"]
+- Energy: ["ISO 27001 A.12.2", "NIS2 Art.21(2)(e)", "IEC 62443-3-3 SR 3.2", "NIST DE.CM-4"]
+- Education: ["ISO 27001 A.12.2", "NIST DE.CM-4", "NIS2 Art.21(2)(e)", "ISO 27017"]
+- Retail: ["ISO 27001 A.12.2", "NIST DE.CM-4", "PCI-DSS 11.3", "NIS2 Art.21(2)(e)"]
+- Manufacturing: ["ISO 27001 A.12.2", "NIS2 Art.21(2)(e)", "IEC 62443-3-3 SR 3.2", "NIST DE.CM-4"]
+- Transportation: ["ISO 27001 A.12.2", "NIS2 Art.21(2)(e)", "ISO 28000", "NIST DE.CM-4"]
+- Insurance: ["ISO 27001 A.12.2", "NIST DE.CM-4", "NIS2 Art.21(2)(e)", "Solvency II Art.44", "DORA Art.10"]
+- Telecommunications: ["ISO 27001 A.12.2", "NIS2 Art.21(2)(e)", "TISAX", "NIST DE.CM-4"]
+
+For any event type not explicitly listed, use these sector defaults:
+- Banking: ["ISO 27001", "NIST", "NIS2", "DORA", "PCI-DSS"]
+- Healthcare: ["ISO 27001", "NIST", "NIS2", "HIPAA"]
+- Government: ["ISO 27001", "NIST", "NIS2", "ENS"]
+- Energy: ["ISO 27001", "NIST", "NIS2", "IEC 62443"]
+- Education: ["ISO 27001", "NIST", "NIS2", "ISO 27017"]
+- Retail: ["ISO 27001", "NIST", "NIS2", "PCI-DSS"]
+- Manufacturing: ["ISO 27001", "NIST", "NIS2", "IEC 62443"]
+- Transportation: ["ISO 27001", "NIST", "NIS2", "ISO 28000"]
+- Insurance: ["ISO 27001", "NIST", "NIS2", "Solvency II", "DORA"]
+- Telecommunications: ["ISO 27001", "NIST", "NIS2", "TISAX"]
+
+Style the framework badges with distinct colors:
+- NIS2: purple background
+- DORA: blue background  
+- HIPAA: teal background
+- ISO standards: dark grey
+- NIST: dark blue
+- PCI-DSS: orange
+- ENS: dark green
+- IEC 62443: brown
+- TISAX: indigo
+- Solvency II: dark purple
+- ISO 28000: dark teal

@@ -1,6 +1,6 @@
 import { useApp } from "@/lib/context";
 import { useLocation } from "wouter";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
   LineChart, Line, CartesianGrid,
@@ -281,6 +281,106 @@ const SECTOR_COMPLIANCE_BENCHMARKS: Record<string, SectorBenchmark[]> = {
   ],
 };
 
+// Sector-specific compliance frameworks per event type. Keys are normalized
+// (lowercase) event-type fragments; matched against a control's eventType.
+const SECTOR_FRAMEWORKS: Record<string, Record<string, string[]>> = {
+  "unpatched software": {
+    banking: ["ISO 27001 A.12.6", "NIST PR.IP-12", "NIS2 Art.21(2)(e)", "DORA Art.9", "PCI-DSS 6.3"],
+    healthcare: ["ISO 27001 A.12.6", "NIST PR.IP-12", "NIS2 Art.21(2)(e)", "HIPAA §164.308(a)(5)"],
+    government: ["ISO 27001 A.12.6", "NIST PR.IP-12", "NIS2 Art.21(2)(e)", "ENS mp.sw.2"],
+    energy: ["ISO 27001 A.12.6", "NIS2 Art.21(2)(e)", "IEC 62443-2-4", "NIST PR.IP-12"],
+    education: ["ISO 27001 A.12.6", "NIST PR.IP-12", "NIS2 Art.21(2)(e)", "ISO 27017"],
+    retail: ["ISO 27001 A.12.6", "NIST PR.IP-12", "PCI-DSS 6.3", "NIS2 Art.21(2)(e)"],
+    manufacturing: ["ISO 27001 A.12.6", "NIS2 Art.21(2)(e)", "IEC 62443-2-4", "NIST PR.IP-12"],
+    transportation: ["ISO 27001 A.12.6", "NIS2 Art.21(2)(e)", "ISO 28000", "NIST PR.IP-12"],
+    insurance: ["ISO 27001 A.12.6", "NIST PR.IP-12", "NIS2 Art.21(2)(e)", "Solvency II Art.44", "DORA Art.9"],
+    telecommunications: ["ISO 27001 A.12.6", "NIS2 Art.21(2)(e)", "TISAX", "NIST PR.IP-12"],
+  },
+  "social engineering": {
+    banking: ["ISO 27001 A.7.2", "NIST PR.AT-1", "NIS2 Art.21(2)(g)", "DORA Art.13", "PCI-DSS 12.6"],
+    healthcare: ["ISO 27001 A.7.2", "NIST PR.AT-1", "NIS2 Art.21(2)(g)", "HIPAA §164.308(a)(5)(i)"],
+    government: ["ISO 27001 A.7.2", "NIST PR.AT-1", "NIS2 Art.21(2)(g)", "ENS mp.per.3"],
+    energy: ["ISO 27001 A.7.2", "NIS2 Art.21(2)(g)", "IEC 62443-2-1", "NIST PR.AT-1"],
+    education: ["ISO 27001 A.7.2", "NIST PR.AT-1", "NIS2 Art.21(2)(g)", "ISO 27017"],
+    retail: ["ISO 27001 A.7.2", "NIST PR.AT-1", "PCI-DSS 12.6", "NIS2 Art.21(2)(g)"],
+    manufacturing: ["ISO 27001 A.7.2", "NIS2 Art.21(2)(g)", "IEC 62443-2-1", "NIST PR.AT-1"],
+    transportation: ["ISO 27001 A.7.2", "NIS2 Art.21(2)(g)", "ISO 28000", "NIST PR.AT-1"],
+    insurance: ["ISO 27001 A.7.2", "NIST PR.AT-1", "NIS2 Art.21(2)(g)", "Solvency II Art.44", "DORA Art.13"],
+    telecommunications: ["ISO 27001 A.7.2", "NIS2 Art.21(2)(g)", "TISAX", "NIST PR.AT-1"],
+  },
+  "weak passwords": {
+    banking: ["ISO 27001 A.9.4", "NIST PR.AC-7", "NIS2 Art.21(2)(i)", "DORA Art.9(4)", "PCI-DSS 8.3"],
+    healthcare: ["ISO 27001 A.9.4", "NIST PR.AC-7", "NIS2 Art.21(2)(i)", "HIPAA §164.312(d)"],
+    government: ["ISO 27001 A.9.4", "NIST PR.AC-7", "NIS2 Art.21(2)(i)", "ENS op.acc.5"],
+    energy: ["ISO 27001 A.9.4", "NIS2 Art.21(2)(i)", "IEC 62443-3-3 SR 1.1", "NIST PR.AC-7"],
+    education: ["ISO 27001 A.9.4", "NIST PR.AC-7", "NIS2 Art.21(2)(i)", "ISO 27017"],
+    retail: ["ISO 27001 A.9.4", "NIST PR.AC-7", "PCI-DSS 8.3", "NIS2 Art.21(2)(i)"],
+    manufacturing: ["ISO 27001 A.9.4", "NIS2 Art.21(2)(i)", "IEC 62443-3-3 SR 1.1", "NIST PR.AC-7"],
+    transportation: ["ISO 27001 A.9.4", "NIS2 Art.21(2)(i)", "ISO 28000", "NIST PR.AC-7"],
+    insurance: ["ISO 27001 A.9.4", "NIST PR.AC-7", "NIS2 Art.21(2)(i)", "Solvency II Art.44", "DORA Art.9(4)"],
+    telecommunications: ["ISO 27001 A.9.4", "NIS2 Art.21(2)(i)", "TISAX", "NIST PR.AC-7"],
+  },
+  "zero-day": {
+    banking: ["ISO 27001 A.12.2", "NIST DE.CM-4", "NIS2 Art.21(2)(e)", "DORA Art.10", "PCI-DSS 11.3"],
+    healthcare: ["ISO 27001 A.12.2", "NIST DE.CM-4", "NIS2 Art.21(2)(e)", "HIPAA §164.306(a)(1)"],
+    government: ["ISO 27001 A.12.2", "NIST DE.CM-4", "NIS2 Art.21(2)(e)", "ENS op.exp.3"],
+    energy: ["ISO 27001 A.12.2", "NIS2 Art.21(2)(e)", "IEC 62443-3-3 SR 3.2", "NIST DE.CM-4"],
+    education: ["ISO 27001 A.12.2", "NIST DE.CM-4", "NIS2 Art.21(2)(e)", "ISO 27017"],
+    retail: ["ISO 27001 A.12.2", "NIST DE.CM-4", "PCI-DSS 11.3", "NIS2 Art.21(2)(e)"],
+    manufacturing: ["ISO 27001 A.12.2", "NIS2 Art.21(2)(e)", "IEC 62443-3-3 SR 3.2", "NIST DE.CM-4"],
+    transportation: ["ISO 27001 A.12.2", "NIS2 Art.21(2)(e)", "ISO 28000", "NIST DE.CM-4"],
+    insurance: ["ISO 27001 A.12.2", "NIST DE.CM-4", "NIS2 Art.21(2)(e)", "Solvency II Art.44", "DORA Art.10"],
+    telecommunications: ["ISO 27001 A.12.2", "NIS2 Art.21(2)(e)", "TISAX", "NIST DE.CM-4"],
+  },
+};
+
+// Fallback frameworks per sector for event types not explicitly mapped above.
+const SECTOR_DEFAULT_FRAMEWORKS: Record<string, string[]> = {
+  banking: ["ISO 27001", "NIST", "NIS2", "DORA", "PCI-DSS"],
+  healthcare: ["ISO 27001", "NIST", "NIS2", "HIPAA"],
+  government: ["ISO 27001", "NIST", "NIS2", "ENS"],
+  energy: ["ISO 27001", "NIST", "NIS2", "IEC 62443"],
+  education: ["ISO 27001", "NIST", "NIS2", "ISO 27017"],
+  retail: ["ISO 27001", "NIST", "NIS2", "PCI-DSS"],
+  manufacturing: ["ISO 27001", "NIST", "NIS2", "IEC 62443"],
+  transportation: ["ISO 27001", "NIST", "NIS2", "ISO 28000"],
+  insurance: ["ISO 27001", "NIST", "NIS2", "Solvency II", "DORA"],
+  telecommunications: ["ISO 27001", "NIST", "NIS2", "TISAX"],
+};
+
+const normalizeFwKey = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+
+// Resolve the frameworks for a control given its event type and the sector.
+function frameworksForControl(eventType: string, sector: string): string[] {
+  const sec = sector.toLowerCase().trim();
+  const evNorm = normalizeFwKey(eventType);
+  for (const key of Object.keys(SECTOR_FRAMEWORKS)) {
+    if (evNorm.includes(normalizeFwKey(key))) {
+      const bySector = SECTOR_FRAMEWORKS[key];
+      return bySector[sec] ?? bySector.banking;
+    }
+  }
+  return SECTOR_DEFAULT_FRAMEWORKS[sec] ?? SECTOR_DEFAULT_FRAMEWORKS.banking;
+}
+
+// Distinct color per framework family for the badges.
+function frameworkBadgeStyle(fw: string): { color: string; backgroundColor: string; borderColor: string } {
+  const mk = (hex: string) => ({ color: hex, backgroundColor: `${hex}1f`, borderColor: `${hex}4d` });
+  const f = fw.toUpperCase();
+  if (f.startsWith("NIS2")) return mk("#c084fc");       // purple
+  if (f.startsWith("DORA")) return mk("#4d9eff");       // blue
+  if (f.startsWith("HIPAA")) return mk("#2dd4bf");      // teal
+  if (f.startsWith("NIST")) return mk("#6b8aff");       // dark blue
+  if (f.startsWith("PCI")) return mk("#f97316");        // orange
+  if (f.startsWith("ENS")) return mk("#22c55e");        // dark green
+  if (f.startsWith("IEC")) return mk("#c2873f");        // brown
+  if (f.startsWith("TISAX")) return mk("#818cf8");      // indigo
+  if (f.startsWith("SOLVENCY")) return mk("#a78bfa");   // dark purple
+  if (f.startsWith("ISO 28000")) return mk("#5eead4");  // dark teal
+  if (f.startsWith("ISO")) return mk("#9ca3af");        // ISO standards grey
+  return mk("#9ca3af");
+}
+
 function complianceStatusFromScore(score: number): ComplianceStatus {
   if (score < 50) return "CRITICAL";
   if (score < 70) return "HIGH";
@@ -430,6 +530,16 @@ export default function Results() {
   const [selectedTypes, setSelectedTypes] = useState<Set<string>>(new Set());
   const [selectedYears, setSelectedYears] = useState<Set<string>>(new Set());
   const [eventPage, setEventPage] = useState(0);
+  const [activeControlFilter, setActiveControlFilter] = useState<string | null>(null);
+  const contentScrollRef = useRef<HTMLDivElement>(null);
+
+  const openControlsForEvent = (eventType: string) => {
+    setActiveControlFilter(eventType);
+    setActiveTab("controls");
+    setTimeout(() => {
+      contentScrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+    }, 0);
+  };
 
   if (!analysisResult) {
     setLocation("/");
@@ -834,7 +944,7 @@ export default function Results() {
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6" onClick={() => typeFilterOpen && setTypeFilterOpen(false)}>
+        <div ref={contentScrollRef} className="flex-1 overflow-y-auto p-6" onClick={() => typeFilterOpen && setTypeFilterOpen(false)}>
 
           {/* ─── OPS OVERVIEW ─── */}
           {activeTab === "overview" && (
@@ -913,7 +1023,11 @@ export default function Results() {
                     {top10Critical.slice(0, 7).map((p, i) => (
                       <div key={i} className="space-y-1">
                         <div className="flex items-center justify-between">
-                          <span className="text-xs truncate max-w-[180px]">{p.eventType}</span>
+                          <button data-testid={`link-event-overview-${i}`}
+                            onClick={() => openControlsForEvent(p.eventType)}
+                            className="text-xs truncate max-w-[180px] text-left hover:text-primary hover:underline transition-colors">
+                            {p.eventType}
+                          </button>
                           <div className="flex items-center gap-2 shrink-0">
                             <SeverityBadge level={p.severity} />
                             <span className="text-xs font-bold font-mono" style={{ color: SEV_COLOR[p.severity as SeverityKey] }}>
@@ -1235,7 +1349,13 @@ export default function Results() {
                       <tr key={i} className="border-b border-border/50 hover:bg-secondary/20 transition-colors"
                         data-testid={`row-recurring-${i}`}>
                         <td className="p-3 font-bold text-muted-foreground">{i + 1}</td>
-                        <td className="p-3 font-bold">{e.eventType}</td>
+                        <td className="p-3 font-bold">
+                          <button data-testid={`link-event-recurring-${i}`}
+                            onClick={() => openControlsForEvent(e.eventType)}
+                            className="text-left hover:text-primary hover:underline transition-colors">
+                            {e.eventType}
+                          </button>
+                        </td>
                         <td className="p-3 text-right font-mono text-primary">{e.count.toLocaleString("en-US")}</td>
                         <td className="p-3 text-right font-mono text-muted-foreground">{e.percentage.toFixed(1)}%</td>
                         <td className="p-3 w-40">
@@ -1272,7 +1392,11 @@ export default function Results() {
                         data-testid={`row-critical-${i}`}>
                         <td className="p-3 font-bold" style={{ color }}>{i + 1}</td>
                         <td className="p-3">
-                          <p className="font-bold">{p.eventType}</p>
+                          <button data-testid={`link-event-critical-${i}`}
+                            onClick={() => openControlsForEvent(p.eventType)}
+                            className="font-bold text-left hover:text-primary hover:underline transition-colors">
+                            {p.eventType}
+                          </button>
                           <p className="text-[10px] text-muted-foreground mt-1 leading-relaxed max-w-sm">{p.rationale}</p>
                         </td>
                         <td className="p-3 text-center"><SeverityBadge level={p.severity} /></td>
@@ -1366,9 +1490,34 @@ export default function Results() {
           )}
 
           {/* ─── CONTROLS ─── */}
-          {activeTab === "controls" && (
+          {activeTab === "controls" && (() => {
+            const sector = (orgType ?? "").toLowerCase();
+            const filterKey = activeControlFilter ? normalizeFwKey(activeControlFilter) : null;
+            const visibleControls = filterKey
+              ? controls.filter((c) => normalizeFwKey(c.eventType) === filterKey)
+              : controls;
+            return (
             <div className="space-y-3">
-              {controls.map((ctrl, i) => {
+              {activeControlFilter && (
+                <div className="flex items-center justify-between gap-3 border border-primary/30 bg-primary/5 px-4 py-2"
+                  data-testid="banner-control-filter">
+                  <span className="text-[11px] tracking-wide text-primary uppercase">
+                    Showing controls for: <span className="font-bold">{activeControlFilter}</span>
+                  </span>
+                  <button data-testid="btn-clear-control-filter"
+                    onClick={() => setActiveControlFilter(null)}
+                    className="text-[11px] tracking-wide text-muted-foreground hover:text-primary transition-colors shrink-0">
+                    × Clear filter
+                  </button>
+                </div>
+              )}
+              {visibleControls.length === 0 && (
+                <div className="border border-border bg-card p-4 text-xs text-muted-foreground"
+                  data-testid="empty-control-filter">
+                  No matching control found for "{activeControlFilter}".
+                </div>
+              )}
+              {visibleControls.map((ctrl, i) => {
                 const prob = exploitProbabilities.find((p) => p.eventType === ctrl.eventType);
                 return (
                   <div key={i} className="border border-border bg-card p-4" data-testid={`row-control-${i}`}>
@@ -1400,8 +1549,12 @@ export default function Results() {
                       <div>
                         <p className="text-[10px] tracking-widest uppercase text-muted-foreground mb-2">Frameworks</p>
                         <div className="flex flex-wrap gap-1">
-                          {ctrl.frameworks.map((fw, idx) => (
-                            <span key={idx} className="px-2 py-1 text-[10px] tracking-widest uppercase border border-border text-muted-foreground hover:border-primary hover:text-primary transition-colors">{fw}</span>
+                          {frameworksForControl(ctrl.eventType, sector).map((fw, idx) => (
+                            <span key={idx}
+                              className="px-2 py-1 text-[10px] tracking-widest uppercase border transition-colors"
+                              style={frameworkBadgeStyle(fw)}>
+                              {fw}
+                            </span>
                           ))}
                         </div>
                       </div>
@@ -1410,7 +1563,8 @@ export default function Results() {
                 );
               })}
             </div>
-          )}
+            );
+          })()}
 
           {/* ─── COMPLIANCE ─── */}
           {activeTab === "compliance" && (
