@@ -326,7 +326,7 @@ const QUICK_PERIODS = [
 const PAGE_SIZE = 50;
 
 function SeverityBadge({ level }: { level: string }) {
-  const color = SEV_COLOR[level as SeverityKey] ?? "#666";
+  const color = SEV_COLOR[level as SeverityKey] ?? "#8892a4";
   const bg = SEV_BG[level as SeverityKey] ?? "rgba(102,102,102,0.12)";
   return (
     <span className="px-2 py-0.5 text-[10px] font-bold tracking-widest uppercase"
@@ -842,7 +842,7 @@ export default function Results() {
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                 <StatCard label="Total Events" value={displayCount.toLocaleString("en-US")}
                   sub={isFiltered ? `of ${totalEvents.toLocaleString("en-US")} total` : "events processed"}
-                  icon={Activity} accent="#3b82f6" />
+                  icon={Activity} accent="#4d9eff" />
                 <StatCard label="Risk Score" value={`${riskScore}/100`}
                   sub={riskLevel} icon={ShieldAlert} accent={riskAccent} />
                 <StatCard label="Top Threat"
@@ -1026,7 +1026,7 @@ export default function Results() {
                         icon={DollarSign} accent={SEV_COLOR["Critical"]} />
                       <StatCard label="Recommended Investment" value={fmtEur(remediationCost)}
                         sub="to protect the business"
-                        icon={ShieldCheck} accent="#3b82f6" />
+                        icon={ShieldCheck} accent="#4d9eff" />
                       <StatCard label="Protection ROI" value={roiLabel}
                         sub="protected per € invested"
                         icon={TrendingUp} accent={SEV_COLOR["Low"]} />
@@ -1064,7 +1064,7 @@ export default function Results() {
                             {roi > 0 ? (
                               <>
                                 . Board action is recommended to approve a remediation budget of{" "}
-                                <span className="font-bold" style={{ color: "#3b82f6" }}>
+                                <span className="font-bold" style={{ color: "#4d9eff" }}>
                                   {fmtEur(remediationCost)}
                                 </span>
                                 , which represents a{" "}
@@ -1119,7 +1119,7 @@ export default function Results() {
                                 <p className="text-[11px] text-muted-foreground mt-0.5">{item.impact}</p>
                                 <p className="text-[11px] mt-1">
                                   <span className="text-muted-foreground">Estimated cost: </span>
-                                  <span className="font-mono font-bold" style={{ color: "#3b82f6" }}>{fmtEur(item.cost)}</span>
+                                  <span className="font-mono font-bold" style={{ color: "#4d9eff" }}>{fmtEur(item.cost)}</span>
                                 </p>
                               </div>
                             </div>
@@ -1174,7 +1174,7 @@ export default function Results() {
                       <div className="border border-border bg-card p-4 flex flex-col gap-2">
                         <span className="text-[10px] tracking-widest uppercase text-muted-foreground">Recommended Next Review</span>
                         <div className="flex items-center gap-2">
-                          <Calendar className="w-5 h-5" style={{ color: "#3b82f6" }} />
+                          <Calendar className="w-5 h-5" style={{ color: "#4d9eff" }} />
                           <span className="text-lg font-bold">{reviewLabel}</span>
                         </div>
                         <span className="text-[10px] text-muted-foreground tracking-wide">in {reviewDays} days</span>
@@ -1431,7 +1431,7 @@ export default function Results() {
                     {/* ── Summary stats ── */}
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                       <StatCard label="Frameworks Tracked" value={String(frameworks.length)}
-                        sub="regulatory mandates" icon={ShieldAlert} accent="#3b82f6" />
+                        sub="regulatory mandates" icon={ShieldAlert} accent="#4d9eff" />
                       <StatCard label="Avg Compliance" value={`${avgScore}%`}
                         sub="across all frameworks"
                         icon={ShieldCheck}
@@ -1540,7 +1540,7 @@ export default function Results() {
                       value={String(eventTrends.length)}
                       sub="event types analysed"
                       icon={CalendarDays}
-                      accent="#3b82f6"
+                      accent="#4d9eff"
                     />
                     <StatCard
                       label="Max 15-Day Prob."
@@ -1598,7 +1598,7 @@ export default function Results() {
                             contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 0, fontSize: 11, fontFamily: "monospace" }}
                             formatter={(v: number, name: string) => [`${v}%`, name]}
                           />
-                          <Bar dataKey="15 Days" fill="#3b82f6" maxBarSize={12} radius={0} />
+                          <Bar dataKey="15 Days" fill="#4d9eff" maxBarSize={12} radius={0} />
                           <Bar dataKey="30 Days" fill="#cc0000" maxBarSize={12} radius={0} />
                         </BarChart>
                       </ResponsiveContainer>

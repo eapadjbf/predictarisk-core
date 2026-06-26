@@ -7,7 +7,9 @@
 @theme inline {
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
+  --color-text-muted: hsl(var(--text-muted));
   --color-border: hsl(var(--border));
+  --color-border-secondary: hsl(var(--border-secondary));
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
 
@@ -73,55 +75,57 @@
   --elevate-1: rgba(255,255,255, .03);
   --elevate-2: rgba(255,255,255, .06);
 
-  /* Near-black terminal background */
-  --background: 0 0% 4%;
-  --foreground: 0 0% 88%;
-  --border: 0 0% 14%;
+  /* Professional dark blue-grey background (#0f1117) */
+  --background: 225 21% 7%;
+  --foreground: 214 32% 91%;       /* #e2e8f0 primary text */
+  --text-muted: 218 17% 35%;       /* #4a5568 deepest muted text */
+  --border: 222 28% 16%;           /* #1e2535 primary border */
+  --border-secondary: 220 25% 19%; /* #252d3d secondary border */
 
-  /* Cards slightly lighter than background */
-  --card: 0 0% 7%;
-  --card-foreground: 0 0% 88%;
-  --card-border: 0 0% 14%;
+  /* Cards: dark blue-grey (#141820) */
+  --card: 220 23% 10%;
+  --card-foreground: 214 32% 91%;
+  --card-border: 222 28% 16%;
 
-  /* Sidebar even darker */
-  --sidebar: 0 0% 3%;
-  --sidebar-foreground: 0 0% 80%;
-  --sidebar-border: 0 0% 12%;
+  /* Sidebar darker blue-grey (#0d1117) */
+  --sidebar: 216 28% 7%;
+  --sidebar-foreground: 219 13% 70%;
+  --sidebar-border: 222 28% 16%;
   --sidebar-primary: 0 100% 42%;
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 0 0% 9%;
-  --sidebar-accent-foreground: 0 0% 88%;
+  --sidebar-accent: 225 28% 14%;   /* #1a1f2e secondary panel */
+  --sidebar-accent-foreground: 214 32% 91%;
   --sidebar-ring: 0 100% 42%;
 
-  /* Primary = red */
+  /* Primary = red (unchanged) */
   --primary: 0 100% 42%;
   --primary-foreground: 0 0% 100%;
 
-  --secondary: 0 0% 11%;
-  --secondary-foreground: 0 0% 80%;
+  --secondary: 225 28% 14%;        /* #1a1f2e secondary panel */
+  --secondary-foreground: 214 20% 82%;
 
-  --muted: 0 0% 11%;
-  --muted-foreground: 0 0% 42%;
+  --muted: 225 28% 14%;            /* #1a1f2e */
+  --muted-foreground: 219 13% 59%; /* #8892a4 secondary/muted text */
 
-  --accent: 0 0% 11%;
-  --accent-foreground: 0 0% 88%;
+  --accent: 225 28% 14%;           /* #1a1f2e */
+  --accent-foreground: 214 32% 91%;
 
   --destructive: 0 100% 42%;
   --destructive-foreground: 0 0% 100%;
 
-  --popover: 0 0% 7%;
-  --popover-foreground: 0 0% 88%;
-  --popover-border: 0 0% 14%;
+  --popover: 220 23% 10%;          /* #141820 */
+  --popover-foreground: 214 32% 91%;
+  --popover-border: 222 28% 16%;
 
-  --input: 0 0% 11%;
+  --input: 225 28% 14%;            /* #1a1f2e */
   --ring: 0 100% 42%;
 
-  /* Severity chart colors */
-  --chart-1: 0 100% 42%;       /* red / crítico */
-  --chart-2: 120 70% 38%;      /* green / baixo */
-  --chart-3: 40 100% 50%;      /* yellow / médio */
-  --chart-4: 22 100% 52%;      /* orange / alto */
-  --chart-5: 200 100% 45%;     /* blue / info */
+  /* Severity chart colors (red/orange/green unchanged; blue upgraded) */
+  --chart-1: 0 100% 42%;       /* red / critical */
+  --chart-2: 120 70% 38%;      /* green / low */
+  --chart-3: 40 100% 50%;      /* yellow / medium */
+  --chart-4: 22 100% 52%;      /* orange / high */
+  --chart-5: 213 100% 65%;     /* blue / info (#4d9eff) */
 
   --app-font-sans: 'JetBrains Mono', 'Menlo', 'Courier New', monospace;
   --app-font-serif: 'JetBrains Mono', monospace;
@@ -164,7 +168,7 @@
   }
   [contenteditable][data-placeholder]:empty::before {
     content: attr(data-placeholder);
-    color: hsl(var(--muted-foreground));
+    color: hsl(var(--text-muted));
     pointer-events: none;
   }
   .no-default-hover-elevate {}
@@ -218,4 +222,14 @@
     inset: -1px;
   }
 }
+/* Subtle elevation + hover border on cards/panels (unlayered so it wins over
+   Tailwind border utilities on hover). */
+.bg-card {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.bg-card:hover {
+  border-color: #2a3550;
+}
+
 #replit-badge, [data-cy="replit-badge"], a[href*="replit.com/refer"], div[class*="badge"], .replit-ui-theme-root ~ div:last-child { display: none !important; }
