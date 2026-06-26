@@ -1,6 +1,6 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import type { CyberAnalysis } from "@workspace/api-zod/src/generated/types";
+import type { CyberAnalysis } from "@workspace/api-zod";
 
 export type ReportType = "full" | "critical" | "financial" | "recurring";
 

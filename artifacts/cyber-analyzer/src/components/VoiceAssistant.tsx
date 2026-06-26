@@ -5,7 +5,7 @@ import {
   ChevronRight, ShieldAlert, DollarSign, ShieldCheck,
   TrendingUp, CalendarDays, FileText,
 } from "lucide-react";
-import type { CyberAnalysis } from "@workspace/api-zod/src/generated/types";
+import type { CyberAnalysis } from "@workspace/api-zod";
 import { generatePDFReport, type ReportType } from "@/lib/generateReport";
 
 // ─── Types ───────────────────────────────────────────────────────────────────

@@ -11,7 +11,7 @@ import {
   List, ChevronDown, CalendarDays, TrendingDown, Minus,
   ArrowUp, ArrowRight, ArrowDown,
 } from "lucide-react";
-import type { RawEvent } from "@workspace/api-zod/src/generated/types";
+import type { RawEvent } from "@workspace/api-zod";
 import VoiceAssistant from "@/components/VoiceAssistant";
 
 type SeverityKey = "Low" | "Medium" | "High" | "Critical";
@@ -34,8 +34,118 @@ const NAV_ITEMS = [
   { id: "critical", label: "Top 10 Critical", icon: AlertTriangle },
   { id: "cost", label: "Top 10 Cost", icon: DollarSign },
   { id: "controls", label: "Controls", icon: ShieldCheck },
+  { id: "compliance", label: "Compliance", icon: ShieldAlert },
   { id: "forecast", label: "Forecast 15-30d", icon: CalendarDays },
   { id: "events", label: "Event Log", icon: List },
+];
+
+type ComplianceStatus = "CRITICAL" | "HIGH" | "MEDIUM" | "OK";
+
+const COMPLIANCE_STATUS_SEV: Record<ComplianceStatus, SeverityKey> = {
+  CRITICAL: "Critical",
+  HIGH: "High",
+  MEDIUM: "Medium",
+  OK: "Low",
+};
+
+interface ComplianceFramework {
+  name: string;
+  scope: string;
+  deadline: string;
+  deadlineDays: number | null;
+  score: number;
+  status: ComplianceStatus;
+  fine: string;
+  articles: { ref: string; threat: string }[];
+  sectorOnly?: string;
+}
+
+const COMPLIANCE_FRAMEWORKS: ComplianceFramework[] = [
+  {
+    name: "NIS2",
+    scope: "Article 21 — Cybersecurity risk-management measures",
+    deadline: "Transposition deadline",
+    deadlineDays: 47,
+    score: 42,
+    status: "CRITICAL",
+    fine: "Up to €10M or 2% of global turnover",
+    articles: [
+      { ref: "Art. 21(2)(a)", threat: "Ransomware / Incident handling" },
+      { ref: "Art. 21(2)(d)", threat: "Supply chain attacks" },
+      { ref: "Art. 23", threat: "24h incident reporting obligation" },
+    ],
+  },
+  {
+    name: "DORA",
+    scope: "Articles 9-10 — ICT risk protection & detection",
+    deadline: "Enforcement window",
+    deadlineDays: 112,
+    score: 68,
+    status: "HIGH",
+    fine: "Up to 1% of daily average worldwide turnover",
+    articles: [
+      { ref: "Art. 9", threat: "Unauthorized access / Weak passwords" },
+      { ref: "Art. 10", threat: "Anomalous activity detection" },
+      { ref: "Art. 17", threat: "ICT-related incident management" },
+    ],
+  },
+  {
+    name: "GDPR",
+    scope: "Article 32 — Security of processing",
+    deadline: "Ongoing obligation",
+    deadlineDays: null,
+    score: 81,
+    status: "OK",
+    fine: "Up to €20M or 4% of global turnover",
+    articles: [
+      { ref: "Art. 32(1)(a)", threat: "Data exfiltration / Encryption" },
+      { ref: "Art. 33", threat: "72h breach notification" },
+      { ref: "Art. 34", threat: "Data subject breach communication" },
+    ],
+  },
+  {
+    name: "ISO 27001",
+    scope: "Annex A controls — ISMS certification",
+    deadline: "Surveillance audit",
+    deadlineDays: 90,
+    score: 73,
+    status: "MEDIUM",
+    fine: "Certification suspension / loss",
+    articles: [
+      { ref: "A.5.7", threat: "Threat intelligence" },
+      { ref: "A.8.7", threat: "Malware protection" },
+      { ref: "A.8.16", threat: "Monitoring activities" },
+    ],
+  },
+  {
+    name: "CIS Controls v8",
+    scope: "18 control groups — Implementation Groups 1-3",
+    deadline: "Continuous benchmark",
+    deadlineDays: null,
+    score: 58,
+    status: "HIGH",
+    fine: "No statutory fine (benchmark framework)",
+    articles: [
+      { ref: "CIS 4", threat: "Secure configuration" },
+      { ref: "CIS 6", threat: "Access control / Weak passwords" },
+      { ref: "CIS 10", threat: "Malware / Ransomware defenses" },
+    ],
+  },
+  {
+    name: "PCI-DSS v4.0",
+    scope: "Cardholder data environment — banking sector",
+    deadline: "Annual attestation",
+    deadlineDays: null,
+    score: 65,
+    status: "HIGH",
+    fine: "Up to €100k / month until compliant",
+    sectorOnly: "banking",
+    articles: [
+      { ref: "Req. 3", threat: "Stored cardholder data exposure" },
+      { ref: "Req. 8", threat: "Authentication / Weak passwords" },
+      { ref: "Req. 11", threat: "Vulnerability scanning / Pen testing" },
+    ],
+  },
 ];
 
 const TREND_META = {
@@ -847,6 +957,128 @@ export default function Results() {
                   </div>
                 );
               })}
+            </div>
+          )}
+
+          {/* ─── COMPLIANCE ─── */}
+          {activeTab === "compliance" && (
+            <div className="space-y-5">
+              {(() => {
+                const sector = (orgType ?? "").toLowerCase();
+                const frameworks = COMPLIANCE_FRAMEWORKS;
+                const avgScore = Math.round(
+                  frameworks.reduce((s, f) => s + f.score, 0) / (frameworks.length || 1)
+                );
+                const criticalCount = frameworks.filter((f) => f.status === "CRITICAL").length;
+                const nextDeadline = frameworks
+                  .filter((f) => f.deadlineDays !== null)
+                  .sort((a, b) => (a.deadlineDays ?? 0) - (b.deadlineDays ?? 0))[0];
+
+                return (
+                  <>
+                    {/* ── Summary stats ── */}
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                      <StatCard label="Frameworks Tracked" value={String(frameworks.length)}
+                        sub="regulatory mandates" icon={ShieldAlert} accent="#3b82f6" />
+                      <StatCard label="Avg Compliance" value={`${avgScore}%`}
+                        sub="across all frameworks"
+                        icon={ShieldCheck}
+                        accent={avgScore >= 75 ? SEV_COLOR["Low"] : avgScore >= 50 ? SEV_COLOR["Medium"] : SEV_COLOR["Critical"]} />
+                      <StatCard label="Critical Gaps" value={String(criticalCount)}
+                        sub="immediate action required" icon={AlertTriangle} accent={SEV_COLOR["Critical"]} />
+                      <StatCard label="Next Deadline"
+                        value={nextDeadline?.deadlineDays != null ? `${nextDeadline.deadlineDays}d` : "—"}
+                        sub={nextDeadline ? nextDeadline.name : "no fixed deadline"}
+                        icon={Calendar} accent={SEV_COLOR["High"]} />
+                    </div>
+
+                    {/* ── Framework map ── */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                      {frameworks.map((f, i) => {
+                        const sev = COMPLIANCE_STATUS_SEV[f.status];
+                        const color = SEV_COLOR[sev];
+                        return (
+                          <div key={i} className="border border-border bg-card p-4 flex flex-col gap-3"
+                            data-testid={`row-compliance-${i}`}>
+                            {/* Header */}
+                            <div className="flex items-start justify-between gap-3">
+                              <div>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <h3 className="text-sm font-bold tracking-wide">{f.name}</h3>
+                                  {f.sectorOnly && (
+                                    <span className={`px-1.5 py-0.5 text-[9px] tracking-widest uppercase border ${
+                                      sector.includes(f.sectorOnly)
+                                        ? "border-primary text-primary"
+                                        : "border-border text-muted-foreground"
+                                    }`}>
+                                      {f.sectorOnly} sector
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-[11px] text-muted-foreground mt-0.5">{f.scope}</p>
+                              </div>
+                              <span className="px-2 py-0.5 text-[10px] font-bold tracking-widest uppercase shrink-0"
+                                style={{ color, backgroundColor: SEV_BG[sev], border: `1px solid ${color}30` }}>
+                                {f.status}
+                              </span>
+                            </div>
+
+                            {/* Compliance bar */}
+                            <div>
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-[10px] tracking-widest uppercase text-muted-foreground">Compliance</span>
+                                <span className="text-xs font-bold font-mono" style={{ color }}>{f.score}%</span>
+                              </div>
+                              <div className="h-1.5 w-full bg-secondary">
+                                <div className="h-full transition-all" style={{ width: `${f.score}%`, backgroundColor: color }} />
+                              </div>
+                            </div>
+
+                            {/* Deadline */}
+                            <div className="flex items-center justify-between border-t border-border/50 pt-3">
+                              <div className="flex items-center gap-1.5 text-[10px] tracking-widest uppercase text-muted-foreground">
+                                <Calendar className="w-3 h-3" />
+                                {f.deadline}
+                              </div>
+                              {f.deadlineDays != null ? (
+                                <span className="text-xs font-bold font-mono"
+                                  style={{ color: f.deadlineDays <= 60 ? SEV_COLOR["Critical"] : f.deadlineDays <= 120 ? SEV_COLOR["High"] : "hsl(var(--foreground))" }}>
+                                  {f.deadlineDays} days
+                                </span>
+                              ) : (
+                                <span className="text-xs font-mono text-muted-foreground">ongoing</span>
+                              )}
+                            </div>
+
+                            {/* Articles mapped to threats */}
+                            <div>
+                              <p className="text-[10px] tracking-widest uppercase text-muted-foreground mb-2">Articles → Current Threats</p>
+                              <ul className="space-y-1.5">
+                                {f.articles.map((a, idx) => (
+                                  <li key={idx} className="flex items-center gap-2 text-xs">
+                                    <span className="px-1.5 py-0.5 text-[9px] font-mono tracking-wider bg-secondary text-foreground shrink-0">{a.ref}</span>
+                                    <ChevronRight className="w-3 h-3 text-muted-foreground shrink-0" />
+                                    <span className="text-muted-foreground truncate">{a.threat}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+
+                            {/* Estimated fine */}
+                            <div className="border-t border-border/50 pt-3 flex items-start gap-2">
+                              <DollarSign className="w-3.5 h-3.5 mt-0.5 shrink-0" style={{ color: SEV_COLOR["Critical"] }} />
+                              <div>
+                                <p className="text-[10px] tracking-widest uppercase text-muted-foreground">Est. Fine if Non-Compliant</p>
+                                <p className="text-xs font-bold mt-0.5" style={{ color: SEV_COLOR["Critical"] }}>{f.fine}</p>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                );
+              })()}
             </div>
           )}
 

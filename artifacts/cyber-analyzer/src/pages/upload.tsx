@@ -2,7 +2,7 @@ import { useApp } from "@/lib/context";
 import { useLocation } from "wouter";
 import { useState, useRef } from "react";
 import { UploadCloud, FileSpreadsheet, AlertCircle, ArrowLeft, Loader2 } from "lucide-react";
-import type { CyberAnalysis } from "@workspace/api-zod/src/generated/types";
+import type { CyberAnalysis } from "@workspace/api-zod";
 
 const LOADING_STEPS = [
   "Processing Excel file...",

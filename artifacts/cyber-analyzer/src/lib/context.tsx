@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, ReactNode } from "react";
-import type { CyberAnalysis } from "@workspace/api-zod/src/generated/types";
+import type { CyberAnalysis } from "@workspace/api-zod";
 
 interface AppState {
   selectedOrgType: string | null;
