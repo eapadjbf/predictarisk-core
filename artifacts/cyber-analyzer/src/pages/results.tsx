@@ -57,17 +57,22 @@ interface ComplianceFramework {
   status: ComplianceStatus;
   fine: string;
   articles: { ref: string; threat: string }[];
-  sectorOnly?: string;
 }
 
-const COMPLIANCE_FRAMEWORKS: ComplianceFramework[] = [
-  {
+// ── Framework reference data (scope, deadlines, fines, article→threat maps) ──
+type FrameworkId =
+  | "NIS2" | "DORA" | "GDPR" | "ISO27001" | "CIS"
+  | "PCIDSS" | "HIPAA" | "ENS" | "IEC62443"
+  | "TISAX" | "ISO27017" | "ISO28000" | "SOLVENCY2";
+
+type FrameworkTemplate = Omit<ComplianceFramework, "score" | "status" | "sectorOnly">;
+
+const FRAMEWORK_TEMPLATES: Record<FrameworkId, FrameworkTemplate> = {
+  NIS2: {
     name: "NIS2",
     scope: "Article 21 — Cybersecurity risk-management measures",
     deadline: "Transposition deadline",
     deadlineDays: 47,
-    score: 42,
-    status: "CRITICAL",
     fine: "Up to €10M or 2% of global turnover",
     articles: [
       { ref: "Art. 21(2)(a)", threat: "Ransomware / Incident handling" },
@@ -75,13 +80,11 @@ const COMPLIANCE_FRAMEWORKS: ComplianceFramework[] = [
       { ref: "Art. 23", threat: "24h incident reporting obligation" },
     ],
   },
-  {
+  DORA: {
     name: "DORA",
     scope: "Articles 9-10 — ICT risk protection & detection",
     deadline: "Enforcement window",
     deadlineDays: 112,
-    score: 68,
-    status: "HIGH",
     fine: "Up to 1% of daily average worldwide turnover",
     articles: [
       { ref: "Art. 9", threat: "Unauthorized access / Weak passwords" },
@@ -89,13 +92,11 @@ const COMPLIANCE_FRAMEWORKS: ComplianceFramework[] = [
       { ref: "Art. 17", threat: "ICT-related incident management" },
     ],
   },
-  {
+  GDPR: {
     name: "GDPR",
     scope: "Article 32 — Security of processing",
     deadline: "Ongoing obligation",
     deadlineDays: null,
-    score: 81,
-    status: "OK",
     fine: "Up to €20M or 4% of global turnover",
     articles: [
       { ref: "Art. 32(1)(a)", threat: "Data exfiltration / Encryption" },
@@ -103,13 +104,11 @@ const COMPLIANCE_FRAMEWORKS: ComplianceFramework[] = [
       { ref: "Art. 34", threat: "Data subject breach communication" },
     ],
   },
-  {
+  ISO27001: {
     name: "ISO 27001",
     scope: "Annex A controls — ISMS certification",
     deadline: "Surveillance audit",
     deadlineDays: 90,
-    score: 73,
-    status: "MEDIUM",
     fine: "Certification suspension / loss",
     articles: [
       { ref: "A.5.7", threat: "Threat intelligence" },
@@ -117,13 +116,11 @@ const COMPLIANCE_FRAMEWORKS: ComplianceFramework[] = [
       { ref: "A.8.16", threat: "Monitoring activities" },
     ],
   },
-  {
+  CIS: {
     name: "CIS Controls v8",
     scope: "18 control groups — Implementation Groups 1-3",
     deadline: "Continuous benchmark",
     deadlineDays: null,
-    score: 58,
-    status: "HIGH",
     fine: "No statutory fine (benchmark framework)",
     articles: [
       { ref: "CIS 4", threat: "Secure configuration" },
@@ -131,22 +128,178 @@ const COMPLIANCE_FRAMEWORKS: ComplianceFramework[] = [
       { ref: "CIS 10", threat: "Malware / Ransomware defenses" },
     ],
   },
-  {
+  PCIDSS: {
     name: "PCI-DSS v4.0",
-    scope: "Cardholder data environment — banking sector",
+    scope: "Cardholder data environment — payment security",
     deadline: "Annual attestation",
     deadlineDays: null,
-    score: 65,
-    status: "HIGH",
     fine: "Up to €100k / month until compliant",
-    sectorOnly: "banking",
     articles: [
       { ref: "Req. 3", threat: "Stored cardholder data exposure" },
       { ref: "Req. 8", threat: "Authentication / Weak passwords" },
       { ref: "Req. 11", threat: "Vulnerability scanning / Pen testing" },
     ],
   },
-];
+  HIPAA: {
+    name: "HIPAA",
+    scope: "Security Rule — Protected Health Information (PHI)",
+    deadline: "Ongoing obligation",
+    deadlineDays: null,
+    fine: "Up to $1.5M per violation category / year",
+    articles: [
+      { ref: "§164.308", threat: "Administrative safeguards / Access mgmt" },
+      { ref: "§164.312", threat: "Technical safeguards / Encryption" },
+      { ref: "§164.404", threat: "Breach notification (60 days)" },
+    ],
+  },
+  ENS: {
+    name: "ENS",
+    scope: "Esquema Nacional de Seguridad — RD 311/2022",
+    deadline: "Conformity renewal",
+    deadlineDays: 120,
+    fine: "Administrative sanction / loss of conformity",
+    articles: [
+      { ref: "op.acc", threat: "Access control / Weak passwords" },
+      { ref: "mp.s", threat: "Protection of services / DDoS" },
+      { ref: "op.mon", threat: "Monitoring & detection" },
+    ],
+  },
+  IEC62443: {
+    name: "IEC 62443",
+    scope: "Industrial automation & control systems (OT)",
+    deadline: "Zone & conduit review",
+    deadlineDays: 150,
+    fine: "No statutory fine (sector standard)",
+    articles: [
+      { ref: "SR 1.1", threat: "Identification & authentication" },
+      { ref: "SR 3.2", threat: "Malicious code protection" },
+      { ref: "SR 6.2", threat: "Continuous monitoring" },
+    ],
+  },
+  TISAX: {
+    name: "TISAX",
+    scope: "Trusted Information Security Assessment Exchange",
+    deadline: "Label renewal",
+    deadlineDays: 180,
+    fine: "Loss of assessment label",
+    articles: [
+      { ref: "Ctrl 1.x", threat: "Information security policies" },
+      { ref: "Ctrl 5.x", threat: "Identity & access management" },
+      { ref: "Ctrl 8.x", threat: "Incident management" },
+    ],
+  },
+  ISO27017: {
+    name: "ISO 27017",
+    scope: "Cloud services security controls",
+    deadline: "Surveillance audit",
+    deadlineDays: 90,
+    fine: "Certification suspension / loss",
+    articles: [
+      { ref: "CLD.6.3", threat: "Shared responsibility / roles" },
+      { ref: "CLD.9.5", threat: "Virtual environment segregation" },
+      { ref: "CLD.12.1", threat: "Cloud monitoring & logging" },
+    ],
+  },
+  ISO28000: {
+    name: "ISO 28000",
+    scope: "Supply chain security management",
+    deadline: "Surveillance audit",
+    deadlineDays: 90,
+    fine: "Certification suspension / loss",
+    articles: [
+      { ref: "Cl. 6", threat: "Security risk assessment" },
+      { ref: "Cl. 8", threat: "Operational planning & control" },
+      { ref: "Cl. 10", threat: "Incident response & improvement" },
+    ],
+  },
+  SOLVENCY2: {
+    name: "Solvency II",
+    scope: "Articles 41-49 — Governance & risk management",
+    deadline: "Supervisory review",
+    deadlineDays: 120,
+    fine: "Regulatory sanctions / capital add-on",
+    articles: [
+      { ref: "Art. 41", threat: "Governance system" },
+      { ref: "Art. 44", threat: "Risk management (incl. ICT)" },
+      { ref: "Art. 49", threat: "Outsourcing / third-party risk" },
+    ],
+  },
+};
+
+// ── Sector-specific benchmarks: scores, deadline urgency, risk profile ──
+// `deadlineDays` (when present) overrides the framework template to encode the
+// sector's remediation urgency — weaker NIS2 posture ⇒ tighter remediation window.
+interface SectorBenchmark {
+  id: FrameworkId;
+  score: number;
+  deadlineDays?: number;
+}
+
+const SECTOR_COMPLIANCE_BENCHMARKS: Record<string, SectorBenchmark[]> = {
+  banking: [
+    { id: "NIS2", score: 42, deadlineDays: 47 }, { id: "DORA", score: 71, deadlineDays: 90 },
+    { id: "GDPR", score: 81 }, { id: "ISO27001", score: 78 },
+    { id: "CIS", score: 62 }, { id: "PCIDSS", score: 74 },
+  ],
+  healthcare: [
+    { id: "NIS2", score: 38, deadlineDays: 40 }, { id: "GDPR", score: 69 },
+    { id: "ISO27001", score: 61 }, { id: "CIS", score: 54 }, { id: "HIPAA", score: 58 },
+  ],
+  government: [
+    { id: "NIS2", score: 51, deadlineDays: 60 }, { id: "GDPR", score: 74 },
+    { id: "ISO27001", score: 67 }, { id: "CIS", score: 71 }, { id: "ENS", score: 63 },
+  ],
+  energy: [
+    { id: "NIS2", score: 61, deadlineDays: 75 }, { id: "GDPR", score: 72 },
+    { id: "ISO27001", score: 69 }, { id: "CIS", score: 58 }, { id: "IEC62443", score: 55 },
+  ],
+  telecommunications: [
+    { id: "NIS2", score: 58, deadlineDays: 70 }, { id: "GDPR", score: 76 },
+    { id: "ISO27001", score: 71 }, { id: "CIS", score: 64 }, { id: "TISAX", score: 60 },
+  ],
+  education: [
+    { id: "NIS2", score: 31, deadlineDays: 30 }, { id: "GDPR", score: 62 },
+    { id: "ISO27001", score: 54 }, { id: "CIS", score: 48 }, { id: "ISO27017", score: 51 },
+  ],
+  retail: [
+    { id: "NIS2", score: 35, deadlineDays: 35 }, { id: "GDPR", score: 71 },
+    { id: "ISO27001", score: 58 }, { id: "CIS", score: 52 }, { id: "PCIDSS", score: 61 },
+  ],
+  manufacturing: [
+    { id: "NIS2", score: 44, deadlineDays: 50 }, { id: "GDPR", score: 67 },
+    { id: "ISO27001", score: 63 }, { id: "CIS", score: 55 }, { id: "IEC62443", score: 49 },
+  ],
+  transportation: [
+    { id: "NIS2", score: 47, deadlineDays: 55 }, { id: "GDPR", score: 69 },
+    { id: "ISO27001", score: 61 }, { id: "CIS", score: 57 }, { id: "ISO28000", score: 53 },
+  ],
+  insurance: [
+    { id: "NIS2", score: 53, deadlineDays: 65 }, { id: "DORA", score: 64, deadlineDays: 90 },
+    { id: "GDPR", score: 78 }, { id: "ISO27001", score: 72 },
+    { id: "CIS", score: 61 }, { id: "SOLVENCY2", score: 67 },
+  ],
+};
+
+function complianceStatusFromScore(score: number): ComplianceStatus {
+  if (score < 50) return "CRITICAL";
+  if (score < 70) return "HIGH";
+  if (score < 80) return "MEDIUM";
+  return "OK";
+}
+
+function complianceFrameworksForSector(sector: string): ComplianceFramework[] {
+  const benchmarks =
+    SECTOR_COMPLIANCE_BENCHMARKS[sector] ?? SECTOR_COMPLIANCE_BENCHMARKS.banking;
+  return benchmarks.map(({ id, score, deadlineDays }) => {
+    const template = FRAMEWORK_TEMPLATES[id];
+    return {
+      ...template,
+      deadlineDays: deadlineDays ?? template.deadlineDays,
+      score,
+      status: complianceStatusFromScore(score),
+    };
+  });
+}
 
 const TREND_META = {
   rising: { label: "Rising", color: "#cc0000", Icon: ArrowUp },
@@ -965,7 +1118,7 @@ export default function Results() {
             <div className="space-y-5">
               {(() => {
                 const sector = (orgType ?? "").toLowerCase();
-                const frameworks = COMPLIANCE_FRAMEWORKS;
+                const frameworks = complianceFrameworksForSector(sector);
                 const avgScore = Math.round(
                   frameworks.reduce((s, f) => s + f.score, 0) / (frameworks.length || 1)
                 );
@@ -1003,18 +1156,7 @@ export default function Results() {
                             {/* Header */}
                             <div className="flex items-start justify-between gap-3">
                               <div>
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  <h3 className="text-sm font-bold tracking-wide">{f.name}</h3>
-                                  {f.sectorOnly && (
-                                    <span className={`px-1.5 py-0.5 text-[9px] tracking-widest uppercase border ${
-                                      sector.includes(f.sectorOnly)
-                                        ? "border-primary text-primary"
-                                        : "border-border text-muted-foreground"
-                                    }`}>
-                                      {f.sectorOnly} sector
-                                    </span>
-                                  )}
-                                </div>
+                                <h3 className="text-sm font-bold tracking-wide">{f.name}</h3>
                                 <p className="text-[11px] text-muted-foreground mt-0.5">{f.scope}</p>
                               </div>
                               <span className="px-2 py-0.5 text-[10px] font-bold tracking-widest uppercase shrink-0"
