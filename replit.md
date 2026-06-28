@@ -11,6 +11,7 @@ _Replace the heading above with the project's name, and this line with one sente
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
 - Required env: `DATABASE_URL` — Postgres connection string
 - Auth (cyber-analyzer) env: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (embedded at build time)
+- Admin user deletion (api-server) secret: `SUPABASE_SERVICE_ROLE_KEY` (server-only; never sent to the client). The server reads the Supabase URL from `SUPABASE_URL` or falls back to `VITE_SUPABASE_URL`.
 - Supabase schema/RLS: run `artifacts/cyber-analyzer/supabase-setup.sql` in the Supabase SQL Editor; promote an admin with the `update ... set role='admin'` line at the bottom
 
 ## Stack

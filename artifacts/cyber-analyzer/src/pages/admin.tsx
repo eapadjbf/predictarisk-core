@@ -86,14 +86,40 @@ export default function Admin() {
   };
 
   const handleDelete = async (row: Profile) => {
-    if (!window.confirm(`Delete the profile for ${row.email}? This removes their access record.`)) {
+    if (
+      !window.confirm(
+        `Delete ${row.email}? This permanently removes their profile and their login, so they can no longer sign in.`,
+      )
+    ) {
       return;
     }
     setBusyId(row.id);
-    const { error: e } = await supabase.from("profiles").delete().eq("id", row.id);
-    if (e) setError(e.message);
+    setError(null);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (!token) {
+        setError("Your session has expired. Please sign in again.");
+        return;
+      }
+
+      const resp = await fetch(`/api/admin/users/${row.id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!resp.ok) {
+        const body = (await resp.json().catch(() => null)) as { error?: string } | null;
+        setError(body?.error ?? "Failed to delete the user.");
+        return;
+      }
+    } catch {
+      setError("Failed to reach the server. Please try again.");
+      return;
+    } finally {
+      setBusyId(null);
+    }
     await load();
-    setBusyId(null);
   };
 
   const formatDate = (d: string | null) =>
@@ -264,8 +290,8 @@ export default function Admin() {
             </div>
           )}
           <div className="border-t border-border px-4 py-2 text-[9px] text-muted-foreground tracking-wide">
-            Note: Delete removes the user's profile/access record. Removing the underlying auth login
-            requires a service-role action in your Supabase dashboard.
+            Note: Delete fully removes the user — both their profile and their underlying auth login —
+            so any active session is revoked and they can no longer sign in.
           </div>
         </div>
       </main>
