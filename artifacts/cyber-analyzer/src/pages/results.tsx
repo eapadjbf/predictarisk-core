@@ -1,4 +1,5 @@
 import { useApp } from "@/lib/context";
+import { useAuth } from "@/lib/auth";
 import { useLocation } from "wouter";
 import { useState, useMemo, useRef } from "react";
 import {
@@ -9,7 +10,7 @@ import {
   ShieldAlert, Activity, TrendingUp, AlertTriangle, DollarSign,
   ShieldCheck, RotateCcw, ChevronRight, Calendar, Filter, X,
   List, ChevronDown, CalendarDays, TrendingDown, Minus,
-  ArrowUp, ArrowRight, ArrowDown,
+  ArrowUp, ArrowRight, ArrowDown, LogOut, User,
 } from "lucide-react";
 import type { RawEvent } from "@workspace/api-zod";
 import VoiceAssistant from "@/components/VoiceAssistant";
@@ -519,6 +520,7 @@ function humanizeThreat(s: string): string {
 
 export default function Results() {
   const { analysisResult, reset } = useApp();
+  const { profile, isAdmin, signOut } = useAuth();
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState("overview");
 
@@ -803,13 +805,42 @@ export default function Results() {
             );
           })}
         </nav>
-        <div className="p-3 border-t border-border">
+        <div className="p-3 border-t border-border space-y-0.5">
           <button data-testid="btn-nova-analise" onClick={() => { reset(); setLocation("/"); }}
             className="w-full flex items-center gap-2 px-2 py-2 text-xs text-muted-foreground hover:text-primary transition-colors">
             <RotateCcw className="w-3 h-3" />
             <span className="tracking-wide">New Analysis</span>
           </button>
+          {isAdmin && (
+            <button data-testid="btn-admin" onClick={() => setLocation("/admin")}
+              className="w-full flex items-center gap-2 px-2 py-2 text-xs text-muted-foreground hover:text-primary transition-colors">
+              <ShieldCheck className="w-3 h-3" />
+              <span className="tracking-wide">Admin Console</span>
+            </button>
+          )}
         </div>
+
+        {profile && (
+          <div className="p-3 border-t border-border">
+            <div className="flex items-center gap-2 mb-1">
+              <User className="w-3 h-3 text-primary shrink-0" />
+              <p className="text-xs font-bold truncate" data-testid="text-user-name">
+                {profile.first_name} {profile.last_name}
+              </p>
+            </div>
+            <p className="text-[9px] text-muted-foreground tracking-wide uppercase pl-5 truncate mb-2" data-testid="text-user-org">
+              {profile.organisation_name}
+            </p>
+            <button
+              data-testid="btn-logout"
+              onClick={async () => { await signOut(); setLocation("/login"); }}
+              className="w-full flex items-center gap-2 px-2 py-2 text-xs text-muted-foreground hover:text-primary transition-colors"
+            >
+              <LogOut className="w-3 h-3" />
+              <span className="tracking-wide">Logout</span>
+            </button>
+          </div>
+        )}
       </aside>
 
       {/* Main */}

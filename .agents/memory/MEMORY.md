@@ -1,2 +1,1 @@
-- [Plain-language jargon scrubbing](jargon-humanization.md) — board/exec UI must regex-scrub free-form eventType jargon (DDoS/XSS/RCE…), not exact-string lookup.
-- [Tailwind v4 layer override](tailwind-layer-override.md) — to beat a `@layer utilities` class (e.g. `border-border`) on hover, put the override CSS *outside* any `@layer`.
+- [Supabase signUp trust boundary](supabase-signup-trust-boundary.md) — never copy role/plan from raw_user_meta_data; tenant RLS with-check must verify org, not just user_id.

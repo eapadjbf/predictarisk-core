@@ -1,4 +1,6 @@
 import { useApp } from "@/lib/context";
+import { useAuth } from "@/lib/auth";
+import { supabase } from "@/lib/supabase";
 import { useLocation } from "wouter";
 import { useState, useRef } from "react";
 import { UploadCloud, FileSpreadsheet, AlertCircle, ArrowLeft, Loader2 } from "lucide-react";
@@ -16,6 +18,7 @@ const LOADING_STEPS = [
 
 export default function Upload() {
   const { selectedOrgType, setAnalysisResult } = useApp();
+  const { profile } = useAuth();
   const [, setLocation] = useLocation();
   const [file, setFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -94,6 +97,15 @@ export default function Upload() {
 
       const data: CyberAnalysis = await response.json();
       setAnalysisResult(data);
+
+      if (profile) {
+        void supabase.from("analyses").insert({
+          user_id: profile.id,
+          organisation_name: profile.organisation_name,
+          sector: selectedOrgType,
+        });
+      }
+
       setLocation("/results");
     } catch (err) {
       clearInterval(stepInterval);

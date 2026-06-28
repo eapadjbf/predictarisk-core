@@ -10,6 +10,8 @@ _Replace the heading above with the project's name, and this line with one sente
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
 - Required env: `DATABASE_URL` — Postgres connection string
+- Auth (cyber-analyzer) env: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (embedded at build time)
+- Supabase schema/RLS: run `artifacts/cyber-analyzer/supabase-setup.sql` in the Supabase SQL Editor; promote an admin with the `update ... set role='admin'` line at the bottom
 
 ## Stack
 
