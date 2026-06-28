@@ -30,6 +30,7 @@ interface AuthState {
   profile: Profile | null;
   loading: boolean;
   isAdmin: boolean;
+  profileError: string | null;
   suspendedMessage: string | null;
   clearSuspendedMessage: () => void;
   refreshProfile: () => Promise<void>;
@@ -45,6 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [profileError, setProfileError] = useState<string | null>(null);
   const [suspendedMessage, setSuspendedMessage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -78,13 +80,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     (async () => {
       setLoading(true);
-      const { data } = await supabase
+      setProfileError(null);
+      const { data, error } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", userId)
         .maybeSingle();
 
       if (!active) return;
+
+      if (error) {
+        // The profile read failed (most commonly a misconfigured Row Level
+        // Security policy on the profiles table). Surface it instead of
+        // silently treating the user as a non-admin, which would bounce them
+        // off /admin with no explanation. Run artifacts/cyber-analyzer/
+        // supabase-setup.sql to (re)create the correct policies.
+        // eslint-disable-next-line no-console
+        console.error("Failed to load profile:", error);
+        setProfileError(error.message);
+        setProfile(null);
+        setLoading(false);
+        return;
+      }
 
       if (data && data.status === "suspended") {
         setSuspendedMessage(SUSPENDED_MESSAGE);
@@ -105,11 +122,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshProfile = useCallback(async () => {
     if (!userId) return;
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("profiles")
       .select("*")
       .eq("id", userId)
       .maybeSingle();
+    if (error) {
+      // eslint-disable-next-line no-console
+      console.error("Failed to refresh profile:", error);
+      setProfileError(error.message);
+      return;
+    }
+    setProfileError(null);
     setProfile((data as Profile) ?? null);
   }, [userId]);
 
@@ -128,6 +152,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         profile,
         loading,
         isAdmin: profile?.role === "admin",
+        profileError,
         suspendedMessage,
         clearSuspendedMessage,
         refreshProfile,

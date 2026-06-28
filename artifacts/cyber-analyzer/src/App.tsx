@@ -25,17 +25,46 @@ function AuthLoading() {
   );
 }
 
+function ProfileErrorScreen({ message }: { message: string }) {
+  const { signOut } = useAuth();
+  return (
+    <div className="min-h-screen bg-background text-foreground font-mono flex items-center justify-center p-6">
+      <div className="max-w-lg w-full border border-destructive/50 bg-card rounded-md p-6 space-y-4">
+        <h1 className="text-primary text-lg font-semibold">Unable to load your profile</h1>
+        <p className="text-sm text-muted-foreground">
+          You are signed in, but your account profile could not be read from the
+          database. This usually means the Supabase security policies have not been
+          applied yet. Run{" "}
+          <code className="text-foreground">supabase-setup.sql</code> in your
+          Supabase project's SQL Editor, then reload this page.
+        </p>
+        <pre className="text-xs bg-secondary text-muted-foreground rounded p-3 overflow-x-auto whitespace-pre-wrap">
+          {message}
+        </pre>
+        <button
+          onClick={() => signOut()}
+          className="text-sm text-primary hover:underline"
+        >
+          Sign out
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function RequireAuth({ children }: { children: ReactNode }) {
-  const { session, loading } = useAuth();
+  const { session, loading, profileError } = useAuth();
   if (loading) return <AuthLoading />;
   if (!session) return <Redirect to="/login" />;
+  if (profileError) return <ProfileErrorScreen message={profileError} />;
   return <>{children}</>;
 }
 
 function RequireAdmin({ children }: { children: ReactNode }) {
-  const { session, loading, isAdmin } = useAuth();
+  const { session, loading, isAdmin, profileError } = useAuth();
   if (loading) return <AuthLoading />;
   if (!session) return <Redirect to="/login" />;
+  if (profileError) return <ProfileErrorScreen message={profileError} />;
   if (!isAdmin) return <Redirect to="/" />;
   return <>{children}</>;
 }

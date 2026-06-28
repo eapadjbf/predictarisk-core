@@ -25,6 +25,17 @@ no SQL/admin access to it, only the browser-safe anon key.
 data, hit `<url>/auth/v1/settings` (expect 200). Don't drive real `signUp` against
 the user's project — it creates real auth users and sends real emails.
 
+## Admin can't reach /admin (silent redirect)
+Symptom: a user whose `profiles.role='admin'` (verified in the Supabase dashboard,
+which bypasses RLS) still gets bounced from `/admin` to home. Cause: the app's
+profile read fails — almost always the legacy recursive `profiles` RLS policy
+(`42P17`) — so `profile` is null, `isAdmin` is false, and the guard redirects.
+Fix in two parts: (1) the client must **surface** the profile-fetch error instead
+of swallowing it (route guards now show an error screen, not a silent redirect);
+(2) the real unblock is the user re-running `supabase-setup.sql`, whose
+`is_admin()` SECURITY DEFINER pattern avoids the recursion. `role` compare is
+case-sensitive (`'admin'`).
+
 ## Swapped-credentials gotcha
 `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` are easy to paste into each other.
 When swapped, the client built an invalid URL → app shows **"Failed to fetch"** /
