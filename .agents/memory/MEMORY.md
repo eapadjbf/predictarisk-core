@@ -1,1 +1,2 @@
 - [Supabase signUp trust boundary](supabase-signup-trust-boundary.md) — never copy role/plan from raw_user_meta_data; tenant RLS with-check must verify org, not just user_id.
+- [cyber-analyzer Supabase setup](cyber-analyzer-supabase-setup.md) — auth flows need user to run supabase-setup.sql + confirm emails; agent can't apply DDL. Swapped URL/key → "Failed to fetch".
