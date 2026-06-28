@@ -1,0 +1,94 @@
+Create a complete multi-tenant authentication system for CyberGuard.SYS with the following requirements:
+
+PAGES TO CREATE:
+1. /login — Login page
+2. /register — Registration page  
+3. /admin — Admin dashboard (only accessible by admin users)
+
+Modify home.tsx so that if the user is not logged in, they are redirected to /login instead of the sector selector.
+
+---
+
+LOGIN PAGE (/login):
+- Same dark theme as the rest of the app (#0f1117 background, red CYBERGUARD.SYS logo, monospace font)
+- Fields: Email, Password
+- "Sign in" button in red (#ff3333)
+- Link: "Don't have an account? Request access" → goes to /register
+- Link: "Forgot password?" → triggers Supabase password reset email
+- After successful login, redirect to home page (sector selector)
+- Show error messages in red if login fails
+
+---
+
+REGISTER PAGE (/register):
+- Same dark theme
+- Fields (all required):
+  - First Name
+  - Last Name  
+  - Work Email (accept any email including gmail — do not restrict by domain)
+  - Organisation Name
+  - Job Title / Role (dropdown: CISO, CTO, CEO, CFO, Security Analyst, IT Manager, Consultant, Other)
+  - Sector (same 10 sectors as the app: Banking, Healthcare, Government, Education, Energy, Retail, Manufacturing, Transportation, Insurance, Telecommunications)
+  - Password (min 8 chars)
+  - Confirm Password
+- "Create Account" button in red
+- Terms checkbox: "I agree to the Terms of Service and Privacy Policy"
+- After registration, show a success message: "Account created. Please check your email to verify your account."
+- Link back to login
+
+---
+
+SUPABASE INTEGRATION:
+Use Supabase Auth for authentication (email/password). After user registers via Supabase Auth, also insert a record into a "profiles" table in Supabase with these fields:
+- id (uuid, references auth.users)
+- first_name (text)
+- last_name (text)  
+- email (text)
+- organisation_name (text)
+- job_title (text)
+- sector (text)
+- role (text) — default 'user', can be 'admin'
+- org_user_count (int) — how many users exist for this organisation
+- plan (text) — default 'free' (up to 2 users), 'paid' for more
+- created_at (timestamptz)
+
+When a new user registers, check if their organisation_name already has 2 or more users with role 'user' and plan 'free'. If so, show error: "Your organisation already has the maximum of 2 free users. Please contact us at info@cyberguardsys.com to upgrade."
+
+---
+
+ADMIN DASHBOARD (/admin):
+Only accessible if profiles.role === 'admin'. If not admin, redirect to home.
+Show a table with all registered organisations and users:
+- Organisation name
+- User name + email + job title
+- Sector
+- Plan (free/paid)
+- Registration date
+- Number of analyses run
+- Last login date
+- Actions: [Suspend] [Upgrade to Paid] [Delete]
+
+Also show summary cards at top:
+- Total organisations
+- Total users
+- Free plan users
+- Paid plan users
+
+Use the same dark theme. Add a logout button in the nav.
+
+---
+
+NAVIGATION CHANGES:
+- Add a logout button to the sidebar nav in results.tsx (bottom of nav list)
+- Show the logged-in user's name and organisation in the sidebar under the CYBERGUARD.SYS logo
+- Each analysis uploaded should be linked to the logged-in user's org_id so data is isolated per organisation
+
+---
+
+SUPABASE CLIENT:
+Create a file at artifacts/cyber-analyzer/src/lib/supabase.ts with the Supabase client initialisation using environment variables:
+VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY
+
+Also provide the SQL to run in Supabase SQL Editor to create the profiles table and set up Row Level Security so each user can only see their own organisation's data.
+
+Keep all existing functionality intact. Style everything consistently with the existing dark blue-grey theme.
