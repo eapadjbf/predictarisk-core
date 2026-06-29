@@ -856,9 +856,37 @@ export default function Results() {
               {isFiltered && <span className="text-primary ml-1">[filtered]</span>}
             </p>
           </div>
-          <div className="text-[10px] text-muted-foreground tracking-widest uppercase">
-            <span>Last analysis: </span>
-            <span className="text-foreground font-bold">{updatedAt} UTC</span>
+          <div className="flex items-center gap-4">
+            {profile && (
+              <div className="flex items-center gap-3 text-[10px] tracking-widest uppercase" data-testid="user-info-bar">
+                <span className="text-muted-foreground" data-testid="text-user-info">
+                  <span className="text-foreground font-bold">{profile.first_name}</span>
+                  {profile.organisation_name && (
+                    <span> · {profile.organisation_name}</span>
+                  )}
+                </span>
+                {isAdmin && (
+                  <button
+                    data-testid="badge-admin"
+                    onClick={() => setLocation("/admin")}
+                    className="px-1.5 py-0.5 border border-primary/50 text-primary hover:bg-primary/10 transition-colors tracking-widest"
+                  >
+                    ADMIN
+                  </button>
+                )}
+                <button
+                  data-testid="btn-logout-top"
+                  onClick={async () => { await signOut(); setLocation("/login"); }}
+                  className="text-primary hover:text-primary/80 transition-colors tracking-widest"
+                >
+                  [ LOGOUT ]
+                </button>
+              </div>
+            )}
+            <div className="text-[10px] text-muted-foreground tracking-widest uppercase">
+              <span>Last analysis: </span>
+              <span className="text-foreground font-bold">{updatedAt} UTC</span>
+            </div>
           </div>
         </div>
 
