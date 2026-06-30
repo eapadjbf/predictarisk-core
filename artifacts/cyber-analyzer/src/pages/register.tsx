@@ -70,7 +70,7 @@ export default function Register() {
       return;
     }
 
-    const { error: signUpError } = await supabase.auth.signUp({
+    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
       email: email.trim(),
       password,
       options: {
@@ -88,14 +88,63 @@ export default function Register() {
     });
 
     if (signUpError) {
+      // Always log the raw Supabase error so failures are debuggable instead of
+      // silent. The profile row is created by a DB trigger (handle_new_user) that
+      // runs in the same transaction as the auth.users insert, so a profile
+      // failure surfaces here as a sign-up error.
+      // eslint-disable-next-line no-console
+      console.error("Supabase sign-up failed:", signUpError);
       const msg = signUpError.message ?? "";
-      if (/ORG_FREE_LIMIT_REACHED/i.test(msg) || /database error/i.test(msg)) {
+      if (/ORG_FREE_LIMIT_REACHED/i.test(msg)) {
         setError(FREE_TIER_LIMIT_MESSAGE);
+      } else if (/database error/i.test(msg)) {
+        // A trigger raised an exception (or the DB setup is missing). The most
+        // common cause is the free-tier limit; surface the raw error too so a
+        // genuine setup problem isn't hidden behind the limit message.
+        setError(
+          `${FREE_TIER_LIMIT_MESSAGE} — if this is unexpected, the server reported: "${msg}".`,
+        );
       } else {
-        setError(msg);
+        setError(msg || "Registration failed. Please try again.");
       }
       setSubmitting(false);
       return;
+    }
+
+    // When email confirmation is disabled, sign-up returns an active session, so
+    // we can verify the trigger actually created the profile row and surface a
+    // clear error instead of "succeeding" with no profile. When confirmation is
+    // required there is no session yet (RLS would block the read), so we rely on
+    // the DB trigger and skip this check.
+    if (signUpData.session && signUpData.user) {
+      const { data: profileRow, error: profileError } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("id", signUpData.user.id)
+        .maybeSingle();
+
+      if (profileError) {
+        // eslint-disable-next-line no-console
+        console.error("Profile verification failed after sign-up:", profileError);
+        setError(
+          `Your account was created but your profile could not be read: ${profileError.message}. Please contact info@cyberguardsys.com.`,
+        );
+        setSubmitting(false);
+        return;
+      }
+
+      if (!profileRow) {
+        // eslint-disable-next-line no-console
+        console.error(
+          "Profile row was not created after sign-up for user",
+          signUpData.user.id,
+        );
+        setError(
+          "Your account was created but your profile was not saved. The database setup (profiles trigger) may be missing — please contact info@cyberguardsys.com.",
+        );
+        setSubmitting(false);
+        return;
+      }
     }
 
     setSuccess(true);
