@@ -30,6 +30,9 @@ interface AuthState {
   profile: Profile | null;
   loading: boolean;
   isAdmin: boolean;
+  isAnalyst: boolean;
+  isCISO: boolean;
+  isExecutive: boolean;
   profileError: string | null;
   suspendedMessage: string | null;
   clearSuspendedMessage: () => void;
@@ -152,6 +155,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         profile,
         loading,
         isAdmin: profile?.role === "admin",
+        isAnalyst: profile?.role === "analyst",
+        isCISO: profile?.role === "ciso",
+        isExecutive: profile?.role === "executive",
         profileError,
         suspendedMessage,
         clearSuspendedMessage,

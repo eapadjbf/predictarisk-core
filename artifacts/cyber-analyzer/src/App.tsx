@@ -13,6 +13,9 @@ import Results from "@/pages/results";
 import Login from "@/pages/login";
 import Register from "@/pages/register";
 import Admin from "@/pages/admin";
+import AnalystDashboard from "@/pages/analyst";
+import CISODashboard from "@/pages/ciso";
+import ExecutiveDashboard from "@/pages/executive";
 import { ReactNode } from "react";
 
 const queryClient = new QueryClient();
@@ -60,6 +63,14 @@ function RequireAuth({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
+function RequireRole({ children, role }: { children: ReactNode; role: string }) {
+  const { session, loading, profile, profileError } = useAuth();
+  if (loading) return <AuthLoading />;
+  if (!session) return <Redirect to="/login" />;
+  if (profileError) return <ProfileErrorScreen message={profileError} />;
+  if (profile?.role !== role) return <Redirect to="/" />;
+  return <>{children}</>;
+}
 function RequireAdmin({ children }: { children: ReactNode }) {
   const { session, loading, isAdmin, profileError } = useAuth();
   if (loading) return <AuthLoading />;
@@ -78,6 +89,21 @@ function Router() {
         <RequireAuth>
           <Results />
         </RequireAuth>
+      </Route>
+      <Route path="/analyst">
+        <RequireRole role="analyst">
+          <AnalystDashboard />
+        </RequireRole>
+      </Route>
+      <Route path="/ciso">
+        <RequireRole role="ciso">
+          <CISODashboard />
+        </RequireRole>
+      </Route>
+      <Route path="/executive">
+        <RequireRole role="executive">
+          <ExecutiveDashboard />
+        </RequireRole>
       </Route>
       <Route path="/admin">
         <RequireAdmin>

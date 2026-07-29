@@ -3,7 +3,7 @@ import { useLocation, Link } from "wouter";
 import { ShieldAlert, Loader2, AlertCircle, CheckCircle2, MailCheck } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
-import { SECTORS, JOB_TITLES, FREE_TIER_LIMIT_MESSAGE } from "@/lib/constants";
+import { SECTORS, JOB_TITLES, FREE_TIER_LIMIT_MESSAGE, JOB_TITLE_TO_ROLE } from "@/lib/constants";
 
 export default function Register() {
   const [, setLocation] = useLocation();
@@ -81,7 +81,7 @@ export default function Register() {
           organisation_name: orgName,
           job_title: jobTitle,
           sector,
-          role: "user",
+          role: JOB_TITLE_TO_ROLE[jobTitle] ?? "user",
           plan: "free",
         },
       },

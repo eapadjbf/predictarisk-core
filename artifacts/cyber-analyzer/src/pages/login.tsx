@@ -6,7 +6,7 @@ import { useAuth } from "@/lib/auth";
 
 export default function Login() {
   const [, setLocation] = useLocation();
-  const { session, loading, suspendedMessage, clearSuspendedMessage } = useAuth();
+  const { session, loading, profile, suspendedMessage, clearSuspendedMessage } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -15,8 +15,16 @@ export default function Login() {
   const [resetting, setResetting] = useState(false);
 
   useEffect(() => {
-    if (!loading && session) setLocation("/");
-  }, [loading, session, setLocation]);
+    if (!loading && session && profile) {
+      const roleRoutes: Record<string, string> = {
+        admin: "/admin",
+        analyst: "/analyst",
+        ciso: "/ciso",
+        executive: "/executive",
+      };
+      setLocation(roleRoutes[profile.role] ?? "/");
+    }
+  }, [loading, session, profile, setLocation]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,7 +51,7 @@ export default function Login() {
         .eq("id", data.user.id);
     }
 
-    setLocation("/");
+    // Role redirect handled by useEffect after profile loads
   };
 
   const handleReset = async () => {
