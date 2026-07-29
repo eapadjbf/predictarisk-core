@@ -63,6 +63,21 @@ function RequireAuth({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
+function RoleRedirect({ children }: { children: ReactNode }) {
+  const { profile, loading } = useAuth();
+  if (loading) return <AuthLoading />;
+  const roleRoutes: Record<string, string> = {
+    analyst: "/analyst",
+    ciso: "/ciso",
+    executive: "/executive",
+    admin: "/admin",
+  };
+  if (profile?.role && roleRoutes[profile.role]) {
+    return <Redirect to={roleRoutes[profile.role]} />;
+  }
+  return <>{children}</>;
+}
+
 function RequireRole({ children, role }: { children: ReactNode; role: string }) {
   const { session, loading, profile, profileError } = useAuth();
   if (loading) return <AuthLoading />;
@@ -112,13 +127,15 @@ function Router() {
       </Route>
       <Route>
         <RequireAuth>
-          <Layout>
-            <Switch>
-              <Route path="/" component={Home} />
-              <Route path="/upload" component={Upload} />
-              <Route component={NotFound} />
-            </Switch>
-          </Layout>
+          <RoleRedirect>
+            <Layout>
+              <Switch>
+                <Route path="/" component={Home} />
+                <Route path="/upload" component={Upload} />
+                <Route component={NotFound} />
+              </Switch>
+            </Layout>
+          </RoleRedirect>
         </RequireAuth>
       </Route>
     </Switch>
