@@ -49,7 +49,7 @@ function parseExcelDate(value: unknown): string | null {
 
   // Handle actual JS Date objects (produced by XLSX with cellDates: true)
   if (value instanceof Date) {
-    if (!isNaN(value.getTime()) && value.getFullYear() > 1990 && value.getFullYear() < 2050) {
+    if (!isNaN(value.getTime()) && value.getFullYear() >= 2000 && value.getFullYear() <= 2030) {
       return value.toISOString().split("T")[0];
     }
     return null;
@@ -60,10 +60,11 @@ function parseExcelDate(value: unknown): string | null {
 
   // Try Excel serial date (number) — must be checked before string parsing
   const num = Number(str);
-  if (!isNaN(num) && num > 20000 && num < 100000 && !str.includes("/") && !str.includes("-")) {
+  if (!isNaN(num) && num > 36526 && num < 54789 && !str.includes("/") && !str.includes("-")) {
+    // 36526 = 2000-01-01, 54789 = 2050-01-01 in Excel serial
     try {
       const excelDate = XLSX.SSF.parse_date_code(num);
-      if (excelDate) {
+      if (excelDate && excelDate.y >= 2000 && excelDate.y <= 2030) {
         const dd = new Date(excelDate.y, excelDate.m - 1, excelDate.d);
         return dd.toISOString().split("T")[0];
       }
@@ -80,7 +81,7 @@ function parseExcelDate(value: unknown): string | null {
     const month = parseInt(euMatch[2], 10);
     let year = parseInt(euMatch[3], 10);
     if (year < 100) year += 2000;
-    if (day >= 1 && day <= 31 && month >= 1 && month <= 12 && year > 1990) {
+    if (day >= 1 && day <= 31 && month >= 1 && month <= 12 && year >= 2000 && year <= 2030) {
       const dd = new Date(year, month - 1, day);
       if (!isNaN(dd.getTime())) return dd.toISOString().split("T")[0];
     }
@@ -90,14 +91,14 @@ function parseExcelDate(value: unknown): string | null {
   const isoMatch = str.match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (isoMatch) {
     const d = new Date(str);
-    if (!isNaN(d.getTime()) && d.getFullYear() > 1990 && d.getFullYear() < 2050) {
+    if (!isNaN(d.getTime()) && d.getFullYear() >= 2000 && d.getFullYear() <= 2030) {
       return d.toISOString().split("T")[0];
     }
   }
 
   // Last resort: direct Date parse (handles RFC strings from xlsx cellDates)
   const d = new Date(str);
-  if (!isNaN(d.getTime()) && d.getFullYear() > 1990 && d.getFullYear() < 2050) {
+  if (!isNaN(d.getTime()) && d.getFullYear() >= 2000 && d.getFullYear() <= 2030) {
     return d.toISOString().split("T")[0];
   }
 
@@ -108,7 +109,8 @@ function parseYearValue(value: unknown): string | null {
   if (!value || value === "") return null;
   const str = String(value).trim();
   const num = parseInt(str, 10);
-  if (!isNaN(num) && num >= 1990 && num <= 2035 && String(num) === str) {
+  // Only accept 4-digit years that look realistic (2000-2030)
+  if (!isNaN(num) && num >= 2000 && num <= 2030 && String(num) === str) {
     return `${num}-01-01`;
   }
   return null;
