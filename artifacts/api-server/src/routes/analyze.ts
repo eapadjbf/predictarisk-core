@@ -139,6 +139,7 @@ function parseExcelRows(buffer: Buffer): { rows: RawEvent[]; textLines: string[]
       const srcCol = findColumn(row, SOURCE_KEYS);
       const descCol = findColumn(row, DESC_KEYS);
 
+      const financialCol = findColumn(row, FINANCIAL_KEYS);
       const dateVal = dateCol
         ? parseExcelDate(row[dateCol])
         : yearCol
@@ -149,6 +150,10 @@ function parseExcelRows(buffer: Buffer): { rows: RawEvent[]; textLines: string[]
       const sevVal = sevCol ? String(row[sevCol]).trim() : null;
       const srcVal = srcCol ? String(row[srcCol]).trim() : null;
       const descVal = descCol ? String(row[descCol]).trim() : null;
+      const financialVal = financialCol ? parseFloat(String(row[financialCol])) : null;
+      if (financialVal && !isNaN(financialVal)) {
+        rawData["_financial_loss_eur"] = String(Math.round(financialVal * 1_000_000));
+      }
 
       // Fallback: use first non-date, non-empty column as event type
       const eventType = typeVal || catVal || descVal?.slice(0, 80) || Object.values(rawData).find(v => v.length > 0 && v.length < 100) || "Unknown";
@@ -211,12 +216,21 @@ router.post("/analyze", upload.single("file"), async (req, res) => {
     ? `Date range: ${datesFound.sort()[0]} to ${datesFound.sort().reverse()[0]}, with ${datesFound.length} events with an identified date.`
     : "No dates were detected in the events.";
 
+  // Financial context
+  const financialValues = rawEvents
+    .map(e => parseFloat(e.rawData["_financial_loss_eur"] ?? ""))
+    .filter(v => !isNaN(v));
+  const financialContext = financialValues.length > 0
+    ? `Financial loss data available: total €${financialValues.reduce((a,b)=>a+b,0).toLocaleString()}, avg €${Math.round(financialValues.reduce((a,b)=>a+b,0)/financialValues.length).toLocaleString()} per event, max €${Math.max(...financialValues).toLocaleString()}.`
+    : "No financial loss data detected.";
+
   const systemPrompt = `You are an expert cybersecurity analyst with deep knowledge of risk analysis, ISO 27001, NIST Cybersecurity Framework, CIS Controls, and European regulation (GDPR, NIS2).
 You analyze cybersecurity events from ${orgType} sector organizations and provide detailed English risk analyses.
 You ALWAYS respond with valid JSON and no extra text outside the JSON.`;
 
   const userPrompt = `Analyze the following ${totalRows} cybersecurity events from a ${orgType} organization:
 ${dateContext}
+${financialContext}
 
 ${eventsPreview}
 
