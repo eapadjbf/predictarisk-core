@@ -100,11 +100,7 @@ function Router() {
     <Switch>
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
-      <Route path="/results">
-        <RequireAuth>
-          <Results />
-        </RequireAuth>
-      </Route>
+      <Route path="/results" component={Results} />
       <Route path="/analyst">
         <RequireRole role="analyst">
           <AnalystDashboard />
