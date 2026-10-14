@@ -17,8 +17,9 @@ const LOADING_STEPS = [
 ];
 
 export default function Upload() {
-  const { selectedOrgType, setAnalysisResult } = useApp();
+  const { selectedOrgType: ctxOrgType, setAnalysisResult } = useApp();
   const { profile } = useAuth();
+  const selectedOrgType = ctxOrgType ?? profile?.sector ?? null;
   const [, setLocation] = useLocation();
   const [file, setFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
