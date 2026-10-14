@@ -23,6 +23,7 @@ const CATEGORY_KEYS = ["category", "categoria", "class", "classe", "group", "gru
 const SEVERITY_KEYS = ["severity", "severidade", "priority", "prioridade", "criticality", "criticidade", "risk", "risco", "level", "nivel", "impact"];
 const SOURCE_KEYS = ["source", "origem", "src", "ip", "host", "hostname", "device", "sensor", "origin", "from", "agent"];
 const DESC_KEYS = ["description", "descricao", "descrição", "detail", "detalhe", "message", "mensagem", "info", "summary", "details", "notes", "text"];
+const FINANCIAL_KEYS = ["financial_loss", "loss_in_million", "perda_financeira", "prejuizo", "prejuízo", "financial", "loss", "perda", "custo"];
 
 function normalizeKey(k: string): string {
   return k.toLowerCase().replace(/[\s_\-\.]/g, "_");
