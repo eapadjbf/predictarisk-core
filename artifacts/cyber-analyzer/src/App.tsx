@@ -1,4 +1,4 @@
-import { Switch, Route, Redirect, Router as WouterRouter } from "wouter";
+import { Switch, Route, Redirect, Router as WouterRouter, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { Toaster } from "@/components/ui/toaster";
@@ -65,6 +65,7 @@ function RequireAuth({ children }: { children: ReactNode }) {
 
 function RoleRedirect({ children }: { children: ReactNode }) {
   const { profile, loading } = useAuth();
+  const [location] = useLocation();
   if (loading) return <AuthLoading />;
   const roleRoutes: Record<string, string> = {
     analyst: "/analyst",
@@ -72,7 +73,7 @@ function RoleRedirect({ children }: { children: ReactNode }) {
     executive: "/executive",
     admin: "/admin",
   };
-  if (profile?.role && roleRoutes[profile.role]) {
+  if (location === "/" && profile?.role && roleRoutes[profile.role]) {
     return <Redirect to={roleRoutes[profile.role]} />;
   }
   return <>{children}</>;
