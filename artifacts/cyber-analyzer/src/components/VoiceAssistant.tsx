@@ -555,7 +555,7 @@ export default function VoiceAssistant({ analysis }: VoiceAssistantProps) {
   const handleMicClick = useCallback(() => {
     if (voiceState !== "idle") { stopAll(); return; }
     if (!open) setOpen(true);
-    if (sessionLog.length === 0) pushLog(`CyberGuard AI — ${analysis.orgType} | Risk ${analysis.riskScore}/100 (${analysis.riskLevel})`);
+    if (sessionLog.length === 0) pushLog(`PredictaRisk AI — ${analysis.orgType} | Risk ${analysis.riskScore}/100 (${analysis.riskLevel})`);
     setVoiceState("greeting");
     speak("How can I help you?", () => startMainListening());
   }, [voiceState, open, sessionLog.length, analysis, speak, stopAll, pushLog, startMainListening]);
@@ -572,7 +572,7 @@ export default function VoiceAssistant({ analysis }: VoiceAssistantProps) {
   // Init log on open
   useEffect(() => {
     if (open && sessionLog.length === 0)
-      pushLog(`CyberGuard AI — ${analysis.orgType} | Risk ${analysis.riskScore}/100 (${analysis.riskLevel})\nClick the microphone or type a question.`);
+      pushLog(`PredictaRisk AI — ${analysis.orgType} | Risk ${analysis.riskScore}/100 (${analysis.riskLevel})\nClick the microphone or type a question.`);
   }, [open]);
 
   const isVoiceActive = voiceState !== "idle";

@@ -137,7 +137,7 @@ export default function Admin() {
       <header className="sticky top-0 z-50 border-b border-border bg-background">
         <div className="flex h-14 items-center px-6 gap-3">
           <ShieldAlert className="h-4 w-4 text-primary" />
-          <span className="text-primary font-bold tracking-widest text-sm uppercase">CYBERGUARD.SYS</span>
+          <span className="text-primary font-bold tracking-widest text-sm uppercase">PREDICTARISK</span>
           <span className="text-[10px] text-muted-foreground tracking-widest uppercase border-l border-border pl-3">
             Admin Console
           </span>

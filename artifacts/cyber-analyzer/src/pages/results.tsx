@@ -776,7 +776,7 @@ export default function Results() {
         <div className="p-4 border-b border-border">
           <div className="flex items-center gap-2 mb-1">
             <ShieldAlert className="w-4 h-4 text-primary" />
-            <span className="text-primary font-bold text-sm tracking-widest">CYBERGUARD.SYS</span>
+            <span className="text-primary font-bold text-sm tracking-widest">PREDICTARISK</span>
           </div>
           <p className="text-[9px] text-muted-foreground tracking-widest uppercase pl-6">Analyzer v2.0</p>
         </div>

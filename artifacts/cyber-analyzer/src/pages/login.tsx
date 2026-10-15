@@ -78,7 +78,7 @@ export default function Login() {
       <div className="w-full max-w-md">
         <div className="flex items-center justify-center gap-2 mb-8">
           <ShieldAlert className="w-6 h-6 text-primary" />
-          <span className="text-primary font-bold text-xl tracking-widest">CYBERGUARD.SYS</span>
+          <span className="text-primary font-bold text-xl tracking-widest">PREDICTARISK</span>
         </div>
 
         <div className="border border-border bg-card p-8">

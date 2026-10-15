@@ -16,7 +16,7 @@ export default function AnalystDashboard() {
         <div className="flex items-center justify-between border-b border-border pb-4">
           <div className="flex items-center gap-2">
             <ShieldAlert className="w-5 h-5 text-primary" />
-            <span className="text-primary font-bold tracking-widest">CYBERGUARD.SYS</span>
+            <span className="text-primary font-bold tracking-widest">PREDICTARISK</span>
             <span className="text-muted-foreground text-xs ml-2">// ANALYST VIEW</span>
           </div>
           <div className="flex items-center gap-4">
