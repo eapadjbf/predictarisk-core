@@ -29,6 +29,7 @@ export async function buildHealthcareAnalysis() {
   return {
     generatedAt: new Date().toISOString(),
     source: "digital-twin",
+    twinUrl: /^https:\/\//.test(process.env.TWIN_BASE_URL ?? "") ? process.env.TWIN_BASE_URL!.replace(/\/+$/, "") : null,
     twinSummary: {
       assets: assets.length,
       criticalToLifeAssets: assets.filter((a) => a.criticalToLife).length,

@@ -6,7 +6,7 @@ export default function AnalystDashboard() {
   const { profile, signOut } = useAuth();
   const twin = useTwinAnalysis();
   if (twin.loading) return <TwinLoading />;
-  if (twin.data) return <TwinShell label="ANALYST VIEW"><TwinAnalyst d={twin.data} /></TwinShell>;
+  if (twin.data) return <TwinShell label="ANALYST VIEW" twinUrl={twin.data.twinUrl}><TwinAnalyst d={twin.data} /></TwinShell>;
 
   return (
     <div className="min-h-screen bg-background text-foreground font-mono p-6">

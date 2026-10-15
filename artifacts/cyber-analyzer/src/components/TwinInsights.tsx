@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
 
 export interface TwinData {
+  twinUrl?: string | null;
   twinSummary: { assets: number; criticalToLifeAssets: number; openAlerts: number; openAlertsOnCriticalToLife: number };
   analysis: {
     reviewStatus: string;
@@ -43,7 +44,7 @@ export function TwinLoading() {
   return <div className="min-h-screen bg-background text-muted-foreground font-mono p-6 text-sm">Loading…</div>;
 }
 
-export function TwinShell({ label, children }: { label: string; children: ReactNode }) {
+export function TwinShell({ label, children, twinUrl }: { label: string; children: ReactNode; twinUrl?: string | null }) {
   const { profile, signOut } = useAuth();
   return (
     <div className="min-h-screen bg-background text-foreground font-mono p-6">
@@ -55,6 +56,12 @@ export function TwinShell({ label, children }: { label: string; children: ReactN
             <span className="text-muted-foreground text-xs ml-2">// {label}</span>
           </div>
           <div className="flex items-center gap-4">
+            {twinUrl && (
+              <a href={`${twinUrl}/departments`} target="_blank" rel="noopener noreferrer" data-testid="open-twin"
+                className="text-xs border border-primary/60 text-primary px-3 py-1.5 tracking-widest uppercase hover:bg-primary/10">
+                Digital Twin ↗
+              </a>
+            )}
             <span className="text-xs text-muted-foreground">{profile?.first_name} {profile?.last_name}</span>
             <button onClick={signOut} className="text-xs text-primary hover:underline">Sign out</button>
           </div>

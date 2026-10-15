@@ -6,7 +6,7 @@ export default function CISODashboard() {
   const { profile, signOut } = useAuth();
   const twin = useTwinAnalysis();
   if (twin.loading) return <TwinLoading />;
-  if (twin.data) return <TwinShell label="CISO VIEW"><TwinCISO d={twin.data} /></TwinShell>;
+  if (twin.data) return <TwinShell label="CISO VIEW" twinUrl={twin.data.twinUrl}><TwinCISO d={twin.data} /></TwinShell>;
 
   return (
     <div className="min-h-screen bg-background text-foreground font-mono p-6">

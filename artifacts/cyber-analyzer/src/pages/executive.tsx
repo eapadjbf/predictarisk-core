@@ -6,7 +6,7 @@ export default function ExecutiveDashboard() {
   const { profile, signOut } = useAuth();
   const twin = useTwinAnalysis();
   if (twin.loading) return <TwinLoading />;
-  if (twin.data) return <TwinShell label="EXECUTIVE VIEW"><TwinExecutive d={twin.data} /></TwinShell>;
+  if (twin.data) return <TwinShell label="EXECUTIVE VIEW" twinUrl={twin.data.twinUrl}><TwinExecutive d={twin.data} /></TwinShell>;
 
   return (
     <div className="min-h-screen bg-background text-foreground font-mono p-6">
