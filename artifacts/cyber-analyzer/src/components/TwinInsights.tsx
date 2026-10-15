@@ -46,6 +46,30 @@ export function TwinLoading() {
 
 export function TwinShell({ label, children, twinUrl }: { label: string; children: ReactNode; twinUrl?: string | null }) {
   const { profile, signOut } = useAuth();
+  const openTwin = async () => {
+    const w = window.open("about:blank", "_blank");
+    let target = `${twinUrl}/departments`;
+    try {
+      const { data: sess } = await supabase.auth.getSession();
+      const token = sess.session?.access_token;
+      const r = await fetch("/api/me/twin-link", {
+        method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
+      if (r.ok) {
+        const j = await r.json();
+        if (j?.url) target = j.url;
+      }
+    } catch {
+      /* usa o link normal (pede login no Twin) */
+    }
+    if (w) {
+      w.opener = null;
+      w.location.href = target;
+    } else {
+      window.location.href = target;
+    }
+  };
   return (
     <div className="min-h-screen bg-background text-foreground font-mono p-6">
       <div className="max-w-6xl mx-auto space-y-6">
@@ -57,10 +81,10 @@ export function TwinShell({ label, children, twinUrl }: { label: string; childre
           </div>
           <div className="flex items-center gap-4">
             {twinUrl && (
-              <a href={`${twinUrl}/departments`} target="_blank" rel="noopener noreferrer" data-testid="open-twin"
+              <button type="button" onClick={openTwin} data-testid="open-twin"
                 className="text-xs border border-primary/60 text-primary px-3 py-1.5 tracking-widest uppercase hover:bg-primary/10">
                 Digital Twin ↗
-              </a>
+              </button>
             )}
             <span className="text-xs text-muted-foreground">{profile?.first_name} {profile?.last_name}</span>
             <button onClick={signOut} className="text-xs text-primary hover:underline">Sign out</button>
