@@ -21,6 +21,11 @@ export default function AnalystDashboard() {
           </div>
         </div>
 
+        {/* Sample data notice */}
+        <div data-testid="sample-data-banner" className="border border-yellow-500/40 bg-yellow-500/10 px-4 py-3 text-xs text-yellow-300">
+          <span className="font-bold tracking-widest">SAMPLE DATA</span> — the figures on this screen are illustrative and are not calculated from your organisation's data.
+        </div>
+
         {/* Stats */}
         <div className="grid grid-cols-4 gap-4">
           {[
