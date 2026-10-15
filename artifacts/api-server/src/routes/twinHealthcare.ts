@@ -2,6 +2,7 @@ import { Router, type IRouter, type Request, type Response, type NextFunction } 
 import { createHash, timingSafeEqual } from "node:crypto";
 import { TwinUnavailableError } from "../twin/connector";
 import { buildHealthcareAnalysis } from "../twin/service";
+import { createTwinTicket } from "../twin/ticket";
 import { requireUser, type AuthedUser } from "../lib/requireUser";
 
 /**
@@ -46,5 +47,13 @@ async function respond(res: Response): Promise<void> {
 
 router.get("/twin/healthcare-analysis", requireKey, (_req, res) => respond(res));
 router.get("/me/healthcare-analysis", requireUser, requireTwinOrg, (_req, res) => respond(res));
+
+router.post("/me/twin-link", requireUser, requireTwinOrg, (_req, res) => {
+  const base = (process.env.TWIN_BASE_URL ?? "").trim().replace(/\/+$/, "");
+  const ticket = createTwinTicket((res.locals.user as AuthedUser).id);
+  if (!/^https:\/\//.test(base) || !ticket) { res.status(503).json({ error: "disabled" }); return; }
+  res.setHeader("Cache-Control", "no-store");
+  res.json({ url: `${base}/api/sso?t=${encodeURIComponent(ticket)}` });
+});
 
 export default router;
