@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import type { CyberAnalysis } from "@workspace/api-zod";
 import { generatePDFReport, type ReportType } from "@/lib/generateReport";
+import { supabase } from "@/lib/supabase";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type VoiceState =
@@ -520,8 +521,10 @@ export default function VoiceAssistant({ analysis }: VoiceAssistantProps) {
     pushLog(`› You asked: ${q}`);
     setInputText(""); setInterimTranscript(""); setVoiceState("processing");
     try {
+      const { data: sess } = await supabase.auth.getSession();
+      const token = sess.session?.access_token;
       const resp = await fetch("/api/ask", {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST", headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify({ question: q, context: buildContext(analysis) }),
       });
       const data = await resp.json();

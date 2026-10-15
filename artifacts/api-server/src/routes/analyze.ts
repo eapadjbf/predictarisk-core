@@ -1,3 +1,4 @@
+import { requireUser } from "../lib/requireUser";
 import { Router } from "express";
 import multer from "multer";
 import * as XLSX from "xlsx";
@@ -177,7 +178,7 @@ function parseExcelRows(buffer: Buffer): { rows: RawEvent[]; textLines: string[]
   return { rows, textLines };
 }
 
-router.post("/analyze", upload.single("file"), async (req, res) => {
+router.post("/analyze", requireUser, upload.single("file"), async (req, res) => {
   const log = req.log;
 
   const orgType = req.body?.orgType as string | undefined;

@@ -83,8 +83,11 @@ export default function Upload() {
     }, 3500);
 
     try {
+      const { data: sess } = await supabase.auth.getSession();
+      const token = sess.session?.access_token;
       const response = await fetch("/api/analyze", {
         method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
         body: formData,
       });
 

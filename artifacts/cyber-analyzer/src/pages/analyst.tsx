@@ -1,8 +1,12 @@
+import { useTwinAnalysis, TwinShell, TwinLoading, TwinAnalyst } from "@/components/TwinInsights";
 import { useAuth } from "@/lib/auth";
 import { ShieldAlert, AlertTriangle, CheckCircle, Clock, Search } from "lucide-react";
 
 export default function AnalystDashboard() {
   const { profile, signOut } = useAuth();
+  const twin = useTwinAnalysis();
+  if (twin.loading) return <TwinLoading />;
+  if (twin.data) return <TwinShell label="ANALYST VIEW"><TwinAnalyst d={twin.data} /></TwinShell>;
 
   return (
     <div className="min-h-screen bg-background text-foreground font-mono p-6">

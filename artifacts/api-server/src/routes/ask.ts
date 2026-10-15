@@ -1,9 +1,10 @@
+import { requireUser } from "../lib/requireUser";
 import { Router } from "express";
 import { openai } from "@workspace/integrations-openai-ai-server";
 
 const router = Router();
 
-router.post("/ask", async (req, res) => {
+router.post("/ask", requireUser, async (req, res) => {
   const log = req.log;
   const { question, context } = req.body as {
     question?: string;
