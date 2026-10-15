@@ -8,8 +8,13 @@ export interface AuthedUser {
   organisation: string;
 }
 
-const rawUrl = (process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL)?.trim();
-const anonKey = (process.env.SUPABASE_ANON_KEY ?? process.env.VITE_SUPABASE_ANON_KEY)?.trim();
+// Os Secrets podem estar guardados trocados: distinguir URL e chave pelo valor.
+const envVals = [process.env.SUPABASE_URL, process.env.VITE_SUPABASE_URL, process.env.SUPABASE_ANON_KEY, process.env.VITE_SUPABASE_ANON_KEY]
+  .map((v) => v?.trim())
+  .filter((v): v is string => !!v);
+const rawUrl = envVals.find((v) => /^https?:\/\//i.test(v));
+const anonKey = envVals.find((v) => !/^https?:\/\//i.test(v));
+
 
 /**
  * Exige sessão Supabase válida (Authorization: Bearer <access_token>) e conta ativa.
@@ -41,10 +46,11 @@ export async function requireUser(req: Request, res: Response, next: NextFunctio
     }
     const { data: p, error: pErr } = await client
       .from("profiles")
-      .select("role, status, sector, organisation_name")
+      .select("*")
       .eq("id", u.user.id)
       .maybeSingle();
     if (pErr) {
+      console.error("requireUser: profile read failed:", pErr.code, pErr.message);
       res.status(500).json({ error: "Could not verify permissions." });
       return;
     }
@@ -56,10 +62,11 @@ export async function requireUser(req: Request, res: Response, next: NextFunctio
       id: u.user.id,
       role: String(p.role ?? ""),
       sector: String(p.sector ?? ""),
-      organisation: String(p.organisation_name ?? ""),
+      organisation: String(p.organisation_name ?? p.organization_name ?? p.organisation ?? p.organization ?? p.company ?? ""),
     } satisfies AuthedUser;
     next();
-  } catch {
+  } catch (err) {
+    console.error("requireUser failed:", err instanceof Error ? err.message : err);
     res.status(500).json({ error: "Could not verify permissions." });
   }
 }
